@@ -465,14 +465,61 @@ input[type=range]::-webkit-slider-thumb{
   padding:8px 2px;font-size:18px;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
 .tool-chip small{font-size:10.5px;font-weight:600}
 .tool-chip.active{background:var(--surface-2);border-color:var(--text);color:var(--text)}
+
+/* ---- v8 additions ---- */
+.home-top{position:absolute;top:calc(14px + env(safe-area-inset-top));right:14px;display:flex;gap:8px;z-index:20}
+.home-top .theme-quick{position:static}
+.pill{height:44px;padding:0 14px;border-radius:22px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:600 13px inherit;font-family:inherit;display:none;align-items:center;gap:6px;cursor:pointer}
+.def-card{width:100%;max-width:320px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px 14px;text-align:left;cursor:pointer}
+.def-card .dh{display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
+.def-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;font-size:13px;font-weight:600}
+.def-grid small{display:block;font-size:10px;color:var(--text-dim);font-weight:600}
+.sw{display:inline-block;width:12px;height:12px;border-radius:50%;border:1px solid var(--border-strong);vertical-align:-1px;margin-right:4px}
+.step-tip{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);font-size:12.5px;font-weight:500;flex:none}
+.step-tip span{flex:1;line-height:1.35}
+.fp-btn{flex:none;border:0;border-radius:10px;padding:8px 11px;background:var(--primary-bg);color:var(--primary-text);font:700 12px inherit;font-family:inherit;cursor:pointer}
+#fullPrev{position:fixed;inset:0;z-index:600;background:var(--bg);display:none;flex-direction:column}
+#fullPrev.show{display:flex;animation:fadeIn .2s}
+.fp-head{display:flex;align-items:center;gap:10px;padding:calc(8px + env(safe-area-inset-top)) 12px 8px;border-bottom:1px solid var(--border)}
+.fp-head b{flex:1;text-align:center;font-size:15px}
+.fp-body{flex:1;min-height:0;overflow-y:auto;padding:14px;background:var(--canvas-bg);display:flex;flex-direction:column;align-items:center;gap:12px}
+#fpImg{max-width:100%;max-height:52vh;box-shadow:0 8px 28px var(--shadow);background:#fff}
+.fp-cap{font-size:12px;color:var(--text-muted);font-weight:600}
+.chk-list{width:100%;max-width:420px;background:var(--surface);border-radius:14px;padding:6px 12px}
+.chk-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;line-height:1.35}
+.chk-row:last-child{border:0}
+.chk-row i{font-style:normal;flex:none;font-size:16px}
+.chk-row span{flex:1}
+.chk-row button{flex:none;border:0;border-radius:8px;padding:6px 10px;background:var(--primary-bg);color:var(--primary-text);font:700 12px inherit;font-family:inherit}
+.fp-foot{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:12px 14px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--border)}
+#bgProg{display:none;width:min(86vw,340px);text-align:center}
+.bgp-steps{display:flex;gap:6px;justify-content:center;margin-bottom:10px;flex-wrap:wrap}
+.bgp-steps span{font-size:11.5px;font-weight:600;padding:5px 9px;border-radius:12px;background:var(--surface-2);color:var(--text-dim)}
+.bgp-steps span.on{background:var(--text);color:var(--bg)}
+.bgp-steps span.ok{background:var(--success);color:#fff}
+.bgp-bar{height:12px;border-radius:6px;background:var(--surface-2);overflow:hidden}
+.bgp-bar div{height:100%;width:0;background:var(--success);transition:width .2s}
+#bgpPct{margin-top:8px;font-size:15px;font-weight:700;color:var(--text)}
+.ai-dl{display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap;font-size:12.5px;font-weight:600;padding:10px 12px;border-radius:12px;background:var(--surface);margin-bottom:12px}
+.ai-dl.ok{color:var(--success)}
+.ai-dl button{border:0;border-radius:8px;padding:7px 12px;background:var(--primary-bg);color:var(--primary-text);font:700 12px inherit;font-family:inherit;cursor:pointer}
+details.more>summary{font-size:13px;font-weight:700;padding:12px;background:var(--surface);border-radius:12px;cursor:pointer;list-style:none}
+details.more[open]>summary{margin-bottom:12px}
+.slider-row .pm{width:34px;height:34px;border:0;border-radius:10px;background:var(--surface-2);color:var(--text);font-size:18px;font-weight:700;flex:none;font-family:inherit}
+.sz-form{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px}
+.sz-form input,.sz-form select{background:var(--surface-2);color:var(--text);border:0;border-radius:9px;padding:9px;font:600 13px inherit;font-family:inherit;min-width:0;-webkit-user-select:text;user-select:text}
+.sz-form .full{grid-column:1/-1}
+.sz-item{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:6px 0}
+.sz-item button{border:0;background:none;color:var(--danger);font-size:16px}
 </style>
 </head>
 <body>
 
 <div id="home" class="screen active">
-  <button class="theme-quick" id="themeQuick" title="Theme">
-    <span id="themeQuickIcon">🌙</span>
-  </button>
+  <div class="home-top">
+    <button class="pill" id="installBtn">📲 <span data-i18n="installApp">Install App</span></button>
+    <button class="theme-quick" id="themeQuick" title="Settings"><span>⚙️</span></button>
+  </div>
   <div class="logo">📸</div>
   <h1 data-i18n="appName">Passport Photo</h1>
   <div class="actions">
@@ -483,6 +530,7 @@ input[type=range]::-webkit-slider-thumb{
       <span class="ico">📷</span><span data-i18n="openCamera">Camera</span>
     </label>
   </div>
+  <div class="def-card" id="defCard"><div class="dh"><span data-i18n="yourSettings">Your settings</span><span data-i18n="change">Change ›</span></div><div class="def-grid" id="defGrid"></div></div>
   <div class="batch-bar" id="batchBar" style="display:none">
     <button class="btn success" id="openBatchBtn"><span id="batchBarText">Sheet</span></button>
     <button class="btn small" id="clearBatchBtn" title="Clear">🗑️</button>
@@ -523,6 +571,7 @@ input[type=range]::-webkit-slider-thumb{
     </div>
   </div>
 
+  <div class="step-tip" id="stepTipBar"><span id="stepTip"></span><button class="fp-btn" id="fpBtn" data-i18n="fpBtn">👁 Final photo</button></div>
   <div id="step1" class="screen active">
     <div class="canvas-stage" id="stage1">
       <canvas id="canvas1"></canvas>
@@ -558,6 +607,7 @@ input[type=range]::-webkit-slider-thumb{
           <span id="removeStatusText">Checking AI…</span>
           <button class="retry-btn" id="aiRetryBtn" style="display:none">Retry</button>
         </div>
+        <div class="ai-dl" id="aiDl"></div>
         <button class="btn primary btn-big-remove" id="removeBgBtn">
           <span class="ico" style="font-size:20px">✂️</span>
           <span data-i18n="removeBg">Remove Background</span>
@@ -603,11 +653,11 @@ input[type=range]::-webkit-slider-thumb{
       <div class="control-block">
         <div class="ctrl-label" data-i18n="quickFixes">Quick Fix</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <button class="btn small" id="autoEnhanceBtn"><span class="ico">✨</span> <span data-i18n="autoEnhance">Auto</span></button>
+          <button class="btn primary" id="autoEnhanceBtn"><span class="ico">✨</span> <span data-i18n="autoEnhance">Auto</span></button>
           <button class="btn small" id="centerFaceBtn"><span class="ico">🎯</span> <span data-i18n="centerFace">Center</span></button>
         </div>
       </div>
-      <div class="control-block">
+      <details class="control-block more"><summary data-i18n="moreTools">More tools</summary>
         <div class="ctrl-label"><span data-i18n="retouch">Retouch Brush</span><button class="retry-btn" id="undoBrushBtn" data-i18n="undo">↶ Undo</button></div>
         <div class="tool-row" id="toolRow">
           <button class="tool-chip active" data-tool="none">✋<small data-i18n="toolMove">Move</small></button>
@@ -625,7 +675,7 @@ input[type=range]::-webkit-slider-thumb{
           <input type="range" id="brushStr" min="5" max="100" value="40">
           <div class="val" id="brushStrVal">40</div>
         </div>
-      </div>
+      </details>
       <div class="control-block">
         <div class="ctrl-label" data-i18n="fineTune">Fine-tune</div>
         <div class="slider-row">
@@ -717,6 +767,22 @@ input[type=range]::-webkit-slider-thumb{
         <button class="lang-btn" data-lang="bn">বাং</button>
       </div>
     </div>
+    <div class="setting-item" id="installRow" style="display:none">
+      <div class="left"><div class="name" data-i18n="installApp">Install App</div><div class="desc" data-i18n="installDesc">Add to home screen</div></div>
+      <button class="btn small" id="installBtn2" style="width:auto;padding:9px 14px">📲</button>
+    </div>
+    <div class="setting-item" style="display:block">
+      <div class="name" data-i18n="mySizes">My Sizes</div><div class="desc" data-i18n="mySizesDesc">Make your own photo size</div>
+      <div class="sz-form">
+        <input id="szName" class="full" maxlength="16" data-ph="szName" placeholder="Name">
+        <input id="szW" type="number" inputmode="decimal" step="0.1" placeholder="W">
+        <input id="szH" type="number" inputmode="decimal" step="0.1" placeholder="H">
+        <select id="szUnit"><option value="cm">cm</option><option value="mm">mm</option></select>
+        <button class="btn small full" id="szAdd" data-i18n="szAdd">Add size</button>
+      </div>
+      <div id="szList" style="margin-top:6px"></div>
+    </div>
+    <div class="setting-item" style="display:block"><div class="name" data-i18n="aiModule">AI module</div><div class="ai-dl" id="aiDlSet" style="margin:8px 0 0"></div></div>
     <div class="setting-item">
       <div class="left"><div class="name" data-i18n="defaultSize">Default Size</div>
         <div class="desc" data-i18n="defaultSizeDesc">Preselected</div></div>
@@ -787,7 +853,15 @@ input[type=range]::-webkit-slider-thumb{
 
 <input type="file" accept="image/*" id="fileGallery" class="hidden-input">
 <input type="file" accept="image/*" capture="environment" id="fileCamera" class="hidden-input">
-<div id="overlay"><div class="spinner"></div><p id="overlayText">Processing…</p></div>
+<div id="overlay"><div class="spinner"></div><p id="overlayText">Processing…</p>
+  <div id="bgProg"><div class="bgp-steps"><span id="bs1">① AI</span><span id="bs2">② ✂️</span><span id="bs3">③ ✨</span></div>
+  <div class="bgp-bar"><div id="bgpFill"></div></div><div id="bgpPct">0%</div></div></div>
+<div id="fullPrev">
+  <div class="fp-head"><button class="hbtn" id="fpBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button><b data-i18n="fpTitle">Final photo</b><span style="width:42px"></span></div>
+  <div class="fp-body"><img id="fpImg" alt=""><div class="fp-cap" id="fpCap"></div>
+    <div class="chk-list" id="chkList"></div></div>
+  <div class="fp-foot"><button class="btn" id="fpEdit" data-i18n="fpBackEdit">‹ Back to edit</button><button class="btn primary" id="fpNext" data-i18n="fpNext">Looks good ›</button></div>
+</div>
 <div id="successAnim"><div class="success-circle">✓</div></div>
 <div id="toast"></div>
 <div id="printArea"></div>
@@ -852,6 +926,33 @@ const I18N = {
     select:'বাছুন', selectAll:'সব', done:'শেষ', deleteSel:'মুছুন', clearRecentAsk:'নির্বাচিত ছবি মুছবেন?', retouch:'রিটাচ ব্রাশ', toolMove:'সরান', toolClean:'ক্লিন', toolLight:'হালকা', toolDark:'গাঢ়', brushSize:'সাইজ', brushStrength:'শক্তি', undo:'↶ আনডু', cropFree:'ফ্রি', msgCropped:'ক্রপ হয়েছে', position:'পজিশন', posTop:'উপরে', posTopLeft:'উপরে-বামে', posCenter:'মাঝখানে'
   }
 };
+
+Object.assign(I18N.en, {
+  stepTips:['Move or pinch the photo. Pick a size below.','Tap the big button to remove the background.','Pick a background color.','Tap "Auto improve". Then check the photo.','Set copies, then Download or Print.'],
+  fpBtn:'👁 Final photo', fpTitle:'Final photo', fpBackEdit:'‹ Back to edit', fpNext:'Looks good ›', fpCap:'Prints at', chkTitle:'Quick check',
+  chkLight:'Light is good', chkDark:'Photo is too dark', chkBright:'Photo is too bright', chkUneven:'One side is darker than the other', chkSharp:'Photo is clear', chkBlur:'Photo looks blurry. Take a clearer photo.',
+  chkRes:'Good quality for print', chkLowRes:'Low quality. Print may look blurry.', chkFace1:'Face is in the middle', chkFaceNone:'Face not found. Check the photo.', chkFaceMany:'More than one face found',
+  chkFaceSmall:'Face is small. Zoom in (Step 1).', chkFaceBig:'Face is too big. Zoom out (Step 1).', chkFaceOff:'Face is not in the middle (Step 1).', chkManual:'Also check yourself: face straight, eyes open, both ears visible.', fix:'Fix',
+  aiModule:'AI module', aiDlYes:'✅ AI module is on this phone. Works offline.', aiDlNo:'⬇️ AI module not downloaded yet', aiDlBtn:'Download now', aiDlBasic:'Basic mode. No download needed.',
+  progDl:'AI download', progRm:'Removing background', progFin:'Finishing', progDone:'done', progLeft:'left', aiDlDone:'AI module downloaded',
+  mySizes:'My Sizes', mySizesDesc:'Make your own photo size', szName:'Name', szAdd:'Add size', szSaved:'Size added', szBad:'Enter name, width and height (10 to 120 mm)',
+  installApp:'Install App', installDesc:'Add to home screen', installIos:'Tap Share, then "Add to Home Screen"', yourSettings:'Your settings', change:'Change ›',
+  sizeWord:'Size', colorWord:'Color', copiesWord:'Copies', sheetWord:'Sheet', moreTools:'🧽 More tools: remove spots, lighten, darken',
+  autoEnhance:'✨ Auto improve', centerFace:'Center face', toolClean:'Remove spots'
+});
+Object.assign(I18N.bn, {
+  stepTips:['ছবি সরান বা পিঞ্চ করুন। নিচে সাইজ বাছুন।','বড় বোতামে চাপ দিয়ে ব্যাকগ্রাউন্ড সরান।','ব্যাকগ্রাউন্ডের রঙ বাছুন।','"অটো ঠিক করুন" চাপুন। তারপর ছবি দেখুন।','কপি ঠিক করে ডাউনলোড বা প্রিন্ট করুন।'],
+  fpBtn:'👁 শেষ ছবি', fpTitle:'শেষ ছবি', fpBackEdit:'‹ ফিরে যান', fpNext:'ঠিক আছে ›', fpCap:'প্রিন্ট সাইজ', chkTitle:'দ্রুত পরীক্ষা',
+  chkLight:'আলো ঠিক আছে', chkDark:'ছবি বেশি অন্ধকার', chkBright:'ছবি বেশি উজ্জ্বল', chkUneven:'এক পাশ অন্য পাশের চেয়ে অন্ধকার', chkSharp:'ছবি পরিষ্কার', chkBlur:'ছবি ঝাপসা। আবার পরিষ্কার ছবি তুলুন।',
+  chkRes:'প্রিন্টের জন্য ভালো মান', chkLowRes:'মান কম। প্রিন্ট ঝাপসা হতে পারে।', chkFace1:'মুখ মাঝখানে আছে', chkFaceNone:'মুখ পাওয়া যায়নি। ছবি দেখুন।', chkFaceMany:'একাধিক মুখ পাওয়া গেছে',
+  chkFaceSmall:'মুখ ছোট। জুম করুন (ধাপ ১)।', chkFaceBig:'মুখ বেশি বড়। জুম কমান (ধাপ ১)।', chkFaceOff:'মুখ মাঝখানে নেই (ধাপ ১)।', chkManual:'নিজেও দেখুন: মুখ সোজা, চোখ খোলা, দুই কান দেখা যাচ্ছে।', fix:'ঠিক করুন',
+  aiModule:'AI মডিউল', aiDlYes:'✅ AI মডিউল ফোনে আছে। ইন্টারনেট ছাড়াও চলবে।', aiDlNo:'⬇️ AI মডিউল এখনও ডাউনলোড হয়নি', aiDlBtn:'এখন ডাউনলোড', aiDlBasic:'বেসিক মোড। ডাউনলোড লাগবে না।',
+  progDl:'AI ডাউনলোড', progRm:'ব্যাকগ্রাউন্ড সরছে', progFin:'শেষ করা হচ্ছে', progDone:'হয়েছে', progLeft:'বাকি', aiDlDone:'AI মডিউল ডাউনলোড হয়েছে',
+  mySizes:'আমার সাইজ', mySizesDesc:'নিজের ছবির সাইজ বানান', szName:'নাম', szAdd:'সাইজ যোগ করুন', szSaved:'সাইজ যোগ হয়েছে', szBad:'নাম, চওড়া ও উচ্চতা দিন (১০ থেকে ১২০ মিমি)',
+  installApp:'অ্যাপ ইনস্টল', installDesc:'হোম স্ক্রিনে যোগ করুন', installIos:'Share চাপুন, তারপর "Add to Home Screen"', yourSettings:'আপনার সেটিংস', change:'বদলান ›',
+  sizeWord:'সাইজ', colorWord:'রঙ', copiesWord:'কপি', sheetWord:'শীট', moreTools:'🧽 আরও টুল: দাগ সরান, হালকা, গাঢ়',
+  autoEnhance:'✨ অটো ঠিক করুন', centerFace:'মুখ মাঝে আনুন', toolClean:'দাগ সরান'
+});
 let lang = LS.get('pp_lang') || 'en';
 const t = k => (I18N[lang] && I18N[lang][k]) || I18N.en[k] || k;
 const tArr = (k, i) => {
@@ -963,6 +1064,8 @@ function toast(msg, type='', ms=2200){
   toast._t = setTimeout(()=> el.className = '', ms);
 }
 function applyLang(){
+  document.querySelectorAll('[data-ph]').forEach(el=>{ el.placeholder = t(el.dataset.ph); });
+  setTimeout(()=>{ try{ updateTip(); renderDefCard(); renderAiDl(); }catch(e){} }, 0);
   if($('addCustText')) $('addCustText').textContent = t('addCust');
   if(typeof updateRecentUI === 'function') updateRecentUI();
   if(typeof updateBatchBar === 'function') updateBatchBar();
@@ -1300,14 +1403,9 @@ async function getCutout(canvas){
         const out = await fn(blob, {
           model: state.bgEngine === 'fast' ? 'isnet_quint8' : 'isnet_fp16',
           output: { format: 'image/png', quality: 1 },
-          progress: (key, cur, total)=>{
-            if(total && String(key).indexOf('fetch') === 0){
-              $('overlayText').textContent = t('msgModelDl') + ' ' + Math.round(cur / total * 100) + '%';
-            } else if(String(key).indexOf('compute') === 0){
-              $('overlayText').textContent = t('msgBgRemoving');
-            }
-          }
+          progress: (key, cur, total)=> bgProg.onProgress(key, cur, total)
         });
+        LS.set('pp_ai_ok_' + (state.bgEngine === 'fast' ? 'q' : 'f'), '1'); renderAiDl();
         let cut = await blobToCanvas(out, canvas.width, canvas.height);
         cut = finishCutout(cut, canvas);
         cutCache = { ref: canvas, cut, engine: state.bgEngine };
@@ -1352,7 +1450,8 @@ function setAiStatus(status, customText){
   if(retry) retry.style.display = (status === 'failed') ? 'inline-block' : 'none';
 }
 
-async function removeBgWithColor(color){
+async function removeBgWithColor(color){ bgProg.start(); try { return await removeBgWithColor0(color); } finally { bgProg.end(); } }
+async function removeBgWithColor0(color){
   if(!state.originalCanvas) return false;
   try {
     busy(true, t('msgBgRemoving'));
@@ -1889,6 +1988,7 @@ function showStepUI(step){
   const s = $('step' + step);
   if(s) s.classList.add('active');
   $('stepTitle').textContent = tArr('stepTitles', step-1);
+  updateTip();
   updateStepDots();
   requestAnimationFrame(()=>{
     requestAnimationFrame(()=>{
@@ -1934,6 +2034,7 @@ function exitEditor(){
   try { $('previewImg').removeAttribute('src'); } catch(e){}
 }
 window.addEventListener('popstate', (e)=>{
+  if(fpOpen){ hideFP(); return; }
   const hs = e.state;
   if(hs && hs.editor && state.sourceCanvas) showStepUI(hs.step);
   else { if(state.sourceCanvas) exitEditor(); else showScreen('home'); }
@@ -2284,16 +2385,7 @@ document.querySelectorAll('.step-dot').forEach(d=>{
   };
 });
 
-$('themeQuick').onclick = ()=>{
-  const current = LS.get('pp_theme') || 'auto';
-  const idx = THEME_CYCLE.indexOf(current);
-  const next = THEME_CYCLE[(idx + 1) % THEME_CYCLE.length];
-  LS.set('pp_theme', next);
-  applyTheme(next);
-  drawAll();
-  const label = next === 'auto' ? 'AUTO' : next.toUpperCase();
-  toast(`🎨 ${label}`, 'success', 1500);
-};
+$('themeQuick').onclick = ()=> $('settingsModal').classList.add('show');
 
 $('rotateBtn').onclick = ()=>{
   if(!state.originalCanvas) return;
@@ -2330,9 +2422,9 @@ $('compareBtn').onclick = function(){
 };
 
 $('settingsBtn').onclick = ()=> $('settingsModal').classList.add('show');
-$('closeSettings').onclick = ()=> $('settingsModal').classList.remove('show');
+$('closeSettings').onclick = ()=>{ $('settingsModal').classList.remove('show'); renderDefCard(); };
 $('settingsModal').onclick = e=>{
-  if(e.target === $('settingsModal')) $('settingsModal').classList.remove('show');
+  if(e.target === $('settingsModal')){ $('settingsModal').classList.remove('show'); renderDefCard(); }
 };
 document.querySelectorAll('.theme-btn').forEach(b=>{
   b.onclick = ()=>{
@@ -2552,6 +2644,8 @@ function srcPoint(e){
 }
 function dab(x, y, rad){
   const sc = state.sourceCanvas;
+  const tool = state.brushTool;
+  const R = tool === 'smooth' ? clamp(Math.round(rad * 0.22), 2, 8) : 0;
   const x0 = Math.max(0, Math.floor(x - rad)), y0 = Math.max(0, Math.floor(y - rad));
   const x1 = Math.min(sc.width, Math.ceil(x + rad)), y1 = Math.min(sc.height, Math.ceil(y + rad));
   const w = x1 - x0, h = y1 - y0;
@@ -2559,9 +2653,12 @@ function dab(x, y, rad){
   const ctx = sc.getContext('2d', { willReadFrequently: true });
   const img = ctx.getImageData(x0, y0, w, h);
   const d = img.data;
-  const tool = state.brushTool;
-  const bd = (tool === 'smooth' && brush.blurCtx) ? brush.blurCtx.getImageData(x0, y0, w, h).data : null;
+  const px0 = Math.max(0, x0 - R), py0 = Math.max(0, y0 - R);
+  const pw = Math.min(sc.width, x1 + R) - px0, ph = Math.min(sc.height, y1 + R) - py0;
+  const big = R ? ctx.getImageData(px0, py0, pw, ph).data : null;
   const str = state.brushStr / 100;
+  const buf = new Uint8Array(9);
+  const offs = [-R, 0, R];
   for(let py = 0; py < h; py++){
     for(let px = 0; px < w; px++){
       const dx = x0 + px + 0.5 - x, dy = y0 + py + 0.5 - y;
@@ -2570,11 +2667,18 @@ function dab(x, y, rad){
       const tt = 1 - dist / rad;
       const f = tt * tt * (3 - 2 * tt);
       const i = (py * w + px) * 4;
-      if(tool === 'smooth' && bd){
-        const k = f * str * 0.5;
-        d[i]   += (bd[i]   - d[i])   * k;
-        d[i+1] += (bd[i+1] - d[i+1]) * k;
-        d[i+2] += (bd[i+2] - d[i+2]) * k;
+      if(tool === 'smooth'){
+        // spot clean: median of 9 nearby points removes spots/marks but keeps edges sharp (no blur)
+        const k = Math.min(1, f * str * 1.6);
+        for(let c = 0; c < 3; c++){
+          let n = 0;
+          for(let oy = 0; oy < 3; oy++) for(let ox = 0; ox < 3; ox++){
+            const sx = clamp(x0 + px + offs[ox] - px0, 0, pw - 1), sy = clamp(y0 + py + offs[oy] - py0, 0, ph - 1);
+            const v = big[(sy * pw + sx) * 4 + c];
+            let j = n++; while(j > 0 && buf[j-1] > v){ buf[j] = buf[j-1]; j--; } buf[j] = v;
+          }
+          d[i + c] += (buf[4] - d[i + c]) * k;
+        }
       } else if(tool === 'light'){
         const k = f * str * 0.12;
         d[i]   += (255 - d[i])   * k;
@@ -2587,9 +2691,9 @@ function dab(x, y, rad){
     }
   }
   ctx.putImageData(img, x0, y0);
-  const b = brush.bbox;
-  if(!b) brush.bbox = { x0, y0, x1, y1 };
-  else { b.x0 = Math.min(b.x0, x0); b.y0 = Math.min(b.y0, y0); b.x1 = Math.max(b.x1, x1); b.y1 = Math.max(b.y1, y1); }
+  const bb = brush.bbox;
+  if(!bb) brush.bbox = { x0, y0, x1, y1 };
+  else { bb.x0 = Math.min(bb.x0, x0); bb.y0 = Math.min(bb.y0, y0); bb.x1 = Math.max(bb.x1, x1); bb.y1 = Math.max(bb.y1, y1); }
 }
 function brushStroke(p){
   const rad = Math.max(1.5, state.brushSize / 2 / p.scale);
@@ -2621,7 +2725,7 @@ canvas4.addEventListener('pointerdown', e=>{
   const p = srcPoint(e);
   brush.backup = cloneCanvas(state.sourceCanvas);
   brush.blur = null; brush.blurCtx = null;
-  if(state.brushTool === 'smooth'){
+  if(false){
     const rad = Math.max(1.5, state.brushSize / 2 / p.scale);
     const bl = document.createElement('canvas');
     bl.width = state.sourceCanvas.width; bl.height = state.sourceCanvas.height;
@@ -2948,6 +3052,214 @@ window.addEventListener('pagehide', persistBatch);
 $('fileGallery').addEventListener('click', persistBatch);
 $('fileCamera').addEventListener('click', persistBatch);
 
+/* ============ v8: progress, AI status, final preview + checks, custom sizes, install, defaults ============ */
+let fpOpen = false, fpStep = 1;
+const AI_KEY = ()=> 'pp_ai_ok_' + (state.bgEngine === 'fast' ? 'q' : 'f');
+function updateTip(){
+  const tip = $('stepTip'); if(!tip) return;
+  tip.textContent = tArr('stepTips', state.step - 1);
+  $('fpBtn').style.display = (state.step >= 1 && state.step <= 4) ? '' : 'none';
+}
+const bgProg = {
+  tm: null, phase: 'init', t0: 0, dl: {}, sawDl: false, pct: 0,
+  start(){
+    clearInterval(this.tm); this.phase = 'init'; this.t0 = Date.now(); this.dl = {}; this.sawDl = false; this.pct = 0;
+    $('bgProg').style.display = 'block'; this.tick(); this.tm = setInterval(()=> this.tick(), 150);
+  },
+  onProgress(key, cur, total){
+    key = String(key);
+    if(key.indexOf('fetch') === 0 && total){ this.dl[key] = [cur, total]; this.sawDl = true; if(this.phase !== 'comp') this.phase = 'dl'; }
+    else if(key.indexOf('compute') === 0 && this.phase !== 'comp'){ this.phase = 'comp'; this.t0 = Date.now(); }
+  },
+  tick(){
+    const el = (Date.now() - this.t0) / 1000;
+    const creep = 1 - Math.exp(-el / 3.5);
+    let p;
+    if(this.phase === 'dl'){
+      let c = 0, tt = 0; for(const k in this.dl){ c += this.dl[k][0]; tt += this.dl[k][1]; }
+      p = tt ? 50 * (c / tt) : 0;
+    } else if(this.phase === 'comp') p = (this.sawDl ? 50 : 0) + (92 - (this.sawDl ? 50 : 0)) * creep;
+    else p = Math.min(8, creep * 20);
+    this.pct = Math.max(this.pct, p);
+    const r = Math.min(100, Math.round(this.pct));
+    $('bgpFill').style.width = r + '%';
+    $('bgpPct').textContent = r + '% ' + t('progDone') + ' · ' + (100 - r) + '% ' + t('progLeft');
+    const s = r >= 92 ? 3 : (this.phase === 'dl' ? 1 : 2);
+    const labs = [t('progDl'), t('progRm'), t('progFin')];
+    [1, 2, 3].forEach(n => { const e = $('bs' + n); e.textContent = '①②③'[n-1] + ' ' + labs[n-1]; e.className = n < s ? 'ok' : (n === s ? 'on' : ''); e.style.display = (n === 1 && !this.sawDl) ? 'none' : ''; });
+  },
+  end(){
+    clearInterval(this.tm); this.tm = null;
+    $('bgpFill').style.width = '100%'; $('bgpPct').textContent = '100% ' + t('progDone');
+    setTimeout(()=>{ if(!this.tm) $('bgProg').style.display = 'none'; }, 250);
+  }
+};
+function renderAiDl(){
+  const html = state.bgEngine === 'light' ? t('aiDlBasic') : (LS.get(AI_KEY()) === '1' ? t('aiDlYes') : t('aiDlNo') + ' <button type="button" class="aidlgo">' + t('aiDlBtn') + '</button>');
+  const ok = state.bgEngine === 'light' || LS.get(AI_KEY()) === '1';
+  ['aiDl', 'aiDlSet'].forEach(id => {
+    const el = $(id); if(!el) return;
+    el.className = 'ai-dl' + (ok ? ' ok' : ''); el.innerHTML = html;
+    const b = el.querySelector('.aidlgo'); if(b) b.onclick = prefetchModel;
+  });
+}
+async function prefetchModel(){
+  busy(true, t('msgModelDl'));
+  bgProg.start();
+  try {
+    const fn = await loadImgly();
+    if(!fn) throw new Error('no engine');
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const x = c.getContext('2d'); x.fillStyle = '#888'; x.fillRect(0, 0, 128, 128); x.fillStyle = '#ccc'; x.fillRect(40, 30, 48, 80);
+    const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+    await fn(blob, { model: state.bgEngine === 'fast' ? 'isnet_quint8' : 'isnet_fp16', progress: (k, a, b)=> bgProg.onProgress(k, a, b) });
+    LS.set(AI_KEY(), '1'); toast(t('aiDlDone'), 'success');
+  } catch(e){ toast(t('msgBgFailed'), 'error'); }
+  bgProg.end(); busy(false); renderAiDl();
+}
+$('bgEngineSel').addEventListener('change', renderAiDl);
+
+/* ---- final photo preview + quick checks ---- */
+function hideFP(){ fpOpen = false; $('fullPrev').classList.remove('show'); }
+function closeFP(then){
+  if(!fpOpen) return;
+  const st = fpStep; hideFP(); history.back();
+  if(then) setTimeout(then, 120, st);
+}
+function openFP(){
+  if(!state.sourceCanvas) return toast(t('msgNoImage'), 'error');
+  fpStep = state.step;
+  const out = renderPhoto();
+  $('fpImg').src = out.toDataURL('image/jpeg', 0.95);
+  $('fpCap').textContent = t('fpCap') + ' ' + state.currentSize.w + '×' + state.currentSize.h + ' mm';
+  $('chkList').innerHTML = '';
+  $('fullPrev').classList.add('show'); fpOpen = true;
+  history.pushState({ editor: true, step: state.step, fp: true }, '', location.pathname + location.search + '#s' + state.step);
+  runChecks(out);
+}
+async function runChecks(out){
+  const rows = [];
+  const W = 200, H = Math.round(200 * out.height / out.width);
+  const s = document.createElement('canvas'); s.width = W; s.height = H;
+  const sx = s.getContext('2d', { willReadFrequently: true }); sx.drawImage(out, 0, 0, W, H);
+  const d = sx.getImageData(0, 0, W, H).data, g = new Float32Array(W * H);
+  for(let i = 0, j = 0; i < d.length; i += 4, j++) g[j] = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+  let sum = 0, n = 0, L = 0, Ln = 0, R = 0, Rn = 0;
+  for(let y = Math.round(H * .25); y < H * .75; y++) for(let x = Math.round(W * .25); x < W * .75; x++){
+    const v = g[y * W + x]; sum += v; n++; if(x < W / 2){ L += v; Ln++; } else { R += v; Rn++; }
+  }
+  const mean = sum / n, fixBtn = true;
+  if(mean < 85) rows.push(['bad', t('chkDark'), fixBtn]); else if(mean > 205) rows.push(['bad', t('chkBright'), fixBtn]); else rows.push(['ok', t('chkLight')]);
+  if(Math.abs(L / Ln - R / Rn) > 35) rows.push(['warn', t('chkUneven')]);
+  let lv = 0, lc = 0;
+  for(let y = 1; y < H - 1; y++) for(let x = 1; x < W - 1; x++){
+    const v = 4 * g[y*W+x] - g[y*W+x-1] - g[y*W+x+1] - g[y*W+x-W] - g[y*W+x+W]; lv += v * v; lc++;
+  }
+  rows.push(lv / lc < 18 ? ['warn', t('chkBlur')] : ['ok', t('chkSharp')]);
+  const sc = Math.max(out.width / state.sourceCanvas.width, out.height / state.sourceCanvas.height) * crop.zoom;
+  rows.push(300 / Math.max(1, sc) < 200 ? ['warn', t('chkLowRes')] : ['ok', t('chkRes')]);
+  let faceDone = false;
+  if('FaceDetector' in window){
+    try {
+      const faces = await new window.FaceDetector({ fastMode: true, maxDetectedFaces: 4 }).detect(out);
+      faceDone = true;
+      if(!faces.length) rows.push(['warn', t('chkFaceNone')]);
+      else if(faces.length > 1) rows.push(['warn', t('chkFaceMany')]);
+      else {
+        const b = faces[0].boundingBox, hr = b.height / out.height, cx = (b.x + b.width / 2) / out.width;
+        if(hr < 0.34) rows.push(['warn', t('chkFaceSmall')]);
+        else if(hr > 0.7) rows.push(['warn', t('chkFaceBig')]);
+        else if(Math.abs(cx - 0.5) > 0.12) rows.push(['warn', t('chkFaceOff')]);
+        else rows.push(['ok', t('chkFace1')]);
+      }
+    } catch(e){}
+  }
+  if(!faceDone) rows.push(['info', t('chkManual')]);
+  const box = $('chkList'); box.innerHTML = '';
+  rows.forEach(r => {
+    const row = document.createElement('div'); row.className = 'chk-row';
+    row.innerHTML = '<i>' + { ok: '✅', warn: '⚠️', bad: '❌', info: 'ℹ️' }[r[0]] + '</i><span></span>';
+    row.querySelector('span').textContent = r[1];
+    if(r[2]){ const b = document.createElement('button'); b.textContent = t('fix'); b.onclick = ()=>{ autoEnhance(); openFPRefresh(); }; row.appendChild(b); }
+    box.appendChild(row);
+  });
+}
+function openFPRefresh(){
+  const out = renderPhoto(); $('fpImg').src = out.toDataURL('image/jpeg', 0.95); runChecks(out);
+}
+$('fpBtn').onclick = openFP;
+$('fpBack').onclick = ()=> closeFP();
+$('fpEdit').onclick = ()=> closeFP();
+$('fpNext').onclick = ()=> closeFP(st => { const b = $('next' + st); if(b) b.click(); });
+
+/* ---- +/- buttons on sliders (easy for everyone) ---- */
+['brightness', 'contrast'].forEach(id => {
+  const inp = $(id), row = inp.parentNode;
+  const mk = (txt, dv) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'pm'; b.textContent = txt;
+    b.onclick = ()=>{ inp.value = clamp(+inp.value + dv, +inp.min, +inp.max); inp.dispatchEvent(new Event('input')); }; return b; };
+  row.insertBefore(mk('−', -5), inp); row.insertBefore(mk('+', 5), inp.nextSibling);
+});
+
+/* ---- custom sizes ---- */
+let customSizes = [];
+try { customSizes = JSON.parse(LS.get('pp_custom_sizes') || '[]') || []; } catch(e){ customSizes = []; }
+customSizes.forEach(c => { if(!PRESETS.some(p => p.id === c.id)) PRESETS.push({ id: c.id, name: c.name, w: c.w, h: c.h }); });
+function fillSizeSel(){
+  const sel = $('defaultSizeSel'), cur = LS.get('pp_default_size') || 'passport';
+  sel.innerHTML = PRESETS.map(p => '<option value="' + p.id + '">' + p.name + ' (' + p.w + '×' + p.h + ')</option>').join('');
+  sel.value = PRESETS.some(p => p.id === cur) ? cur : 'passport';
+}
+function renderSizes(){
+  const box = $('szList'); box.innerHTML = '';
+  customSizes.forEach(c => {
+    const r = document.createElement('div'); r.className = 'sz-item';
+    r.innerHTML = '<span></span><button type="button">✕</button>'; r.firstChild.textContent = c.name + ' · ' + c.w + '×' + c.h + ' mm';
+    r.lastChild.onclick = ()=>{
+      customSizes = customSizes.filter(x => x.id !== c.id); LS.set('pp_custom_sizes', JSON.stringify(customSizes));
+      const i = PRESETS.findIndex(p => p.id === c.id); if(i > -1) PRESETS.splice(i, 1);
+      if(state.currentPreset === c.id){ state.currentPreset = 'passport'; state.currentSize = { w: 35, h: 45 }; }
+      if(LS.get('pp_default_size') === c.id) LS.set('pp_default_size', 'passport');
+      buildPresets(); fillSizeSel(); renderSizes(); renderDefCard();
+    };
+    box.appendChild(r);
+  });
+}
+$('szAdd').onclick = ()=>{
+  const name = $('szName').value.trim(), k = $('szUnit').value === 'cm' ? 10 : 1;
+  const w = Math.round(parseFloat($('szW').value) * k * 10) / 10, h = Math.round(parseFloat($('szH').value) * k * 10) / 10;
+  if(!name || !(w >= 10 && w <= 120 && h >= 10 && h <= 120)) return toast(t('szBad'), 'error', 3200);
+  const c = { id: 'c' + Date.now(), name, w, h };
+  customSizes.push(c); LS.set('pp_custom_sizes', JSON.stringify(customSizes)); PRESETS.push(c);
+  $('szName').value = ''; $('szW').value = ''; $('szH').value = '';
+  buildPresets(); fillSizeSel(); renderSizes(); renderDefCard(); toast(t('szSaved'), 'success');
+};
+
+/* ---- home: current defaults card ---- */
+function renderDefCard(){
+  const g = $('defGrid'); if(!g) return;
+  const p = PRESETS.find(x => x.id === (LS.get('pp_default_size') || 'passport')) || PRESETS[0];
+  const col = LS.get('pp_default_color') || '#ffffff', cp = LS.get('pp_default_copies') || '6', sh = (LS.get('pp_default_sheet') || 'a4').toUpperCase().replace('4X6', '4×6');
+  g.innerHTML = '<div><small>' + t('sizeWord') + '</small>' + p.name + ' ' + p.w + '×' + p.h + '</div><div><small>' + t('colorWord') + '</small><i class="sw" style="background:' + col + '"></i>' + col.toUpperCase() + '</div><div><small>' + t('copiesWord') + '</small>' + cp + '</div><div><small>' + t('sheetWord') + '</small>' + sh + '</div>';
+}
+$('defCard').onclick = ()=> $('settingsModal').classList.add('show');
+
+/* ---- install app ---- */
+let deferredInstall = null;
+const isStandalone = ()=> (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+function updInstall(){
+  const show = !isStandalone() && (deferredInstall || isIOS);
+  $('installBtn').style.display = show ? 'flex' : 'none';
+  $('installRow').style.display = show ? 'flex' : 'none';
+}
+async function doInstall(){
+  if(deferredInstall){ deferredInstall.prompt(); try { await deferredInstall.userChoice; } catch(e){} deferredInstall = null; updInstall(); }
+  else toast(t('installIos'), '', 5000);
+}
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; updInstall(); });
+window.addEventListener('appinstalled', ()=>{ deferredInstall = null; updInstall(); });
+$('installBtn').onclick = doInstall; $('installBtn2').onclick = doInstall;
+
 function init(){
   const savedTheme = LS.get('pp_theme') || 'auto';
   applyTheme(savedTheme);
@@ -2956,7 +3268,6 @@ function init(){
   { let be = LS.get('pp_bg_engine'); if(be === 'ai' || !be) be = 'best'; else if(be === 'basic') be = 'light'; state.bgEngine = be; }
   $('autoEnhanceSwitch').classList.toggle('on', state.autoEnhance);
   $('bgEngineSel').value = state.bgEngine;
-  $('defaultSizeSel').value = LS.get('pp_default_size') || 'passport';
   $('defaultColorSel').value = LS.get('pp_default_color') || '#ffffff';
   $('defaultSheetSel').value = LS.get('pp_default_sheet') || 'a4';
   $('defaultCopiesSel').value = LS.get('pp_default_copies') || '6';
@@ -2969,6 +3280,7 @@ function init(){
   applyLang();
   renderRecent();
   restoreBatch();
+  fillSizeSel(); renderSizes(); renderDefCard(); renderAiDl(); updInstall(); updateTip();
 
   attachPointers(canvas1, ctx1, true);
   attachPointers(canvas2, ctx2, false);
