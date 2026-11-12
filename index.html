@@ -1,0 +1,2992 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#171717">
+<meta name="color-scheme" content="dark light">
+<script>
+(function(){
+  try {
+    var t = 'auto';
+    try { t = window.localStorage.getItem('pp_theme') || 'auto'; } catch(e){}
+    var r = t;
+    if(t === 'auto'){
+      r = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+    }
+    var de = document.documentElement;
+    de.setAttribute('data-theme', r);
+    de.style.colorScheme = (r === 'light') ? 'light' : 'dark';
+    var bg = r === 'light' ? '#ffffff' : (r === 'amoled' ? '#000000' : '#171717');
+    de.style.background = bg;
+    var m = document.querySelector('meta[name="color-scheme"]');
+    if(m) m.setAttribute('content', r === 'light' ? 'light' : 'dark');
+    var tc = document.querySelector('meta[name="theme-color"]');
+    if(tc) tc.setAttribute('content', bg);
+  } catch(e){}
+})();
+</script>
+<title>Passport Photo Studio</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Passport Photo">
+<!-- Reverted to MediaPipe for maximum compatibility -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js" crossorigin="anonymous" defer></script>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+
+html[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#171717; --surface:#262626; --surface-2:#3a3a3a;
+  --text:#e5e5e5; --text-muted:#a3a3a3; --text-dim:#737373;
+  --border:#262626; --border-strong:#404040;
+  --primary-bg:#ffffff; --primary-text:#171717;
+  --canvas-bg:#0a0a0a; --shadow:rgba(0,0,0,.5);
+  --success:#4ade80; --danger:#f87171; --warn:#facc15;
+}
+html[data-theme="light"]{
+  color-scheme: light;
+  --bg:#ffffff; --surface:#f5f5f5; --surface-2:#e5e5e5;
+  --text:#171717; --text-muted:#6b6b6b; --text-dim:#9a9a9a;
+  --border:#eeeeee; --border-strong:#d4d4d4;
+  --primary-bg:#171717; --primary-text:#ffffff;
+  --canvas-bg:#f7f7f7; --shadow:rgba(0,0,0,.12);
+  --success:#16a34a; --danger:#dc2626; --warn:#ca8a04;
+}
+html[data-theme="amoled"]{
+  color-scheme: dark;
+  --bg:#000000; --surface:#0f0f0f; --surface-2:#1a1a1a;
+  --text:#ededed; --text-muted:#8f8f8f; --text-dim:#5a5a5a;
+  --border:#1a1a1a; --border-strong:#2a2a2a;
+  --primary-bg:#ffffff; --primary-text:#000000;
+  --canvas-bg:#000000; --shadow:rgba(0,0,0,.8);
+  --success:#4ade80; --danger:#f87171; --warn:#facc15;
+}
+
+html,body{overscroll-behavior:none;height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:var(--text);
+  transition:background .25s,color .25s}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Bengali",sans-serif;
+  display:flex;flex-direction:column;user-select:none;-webkit-user-select:none;
+  -webkit-font-smoothing:antialiased;background:var(--bg);color:var(--text);
+}
+.screen{display:none;flex-direction:column;flex:1;min-height:0;animation:fadeIn .25s ease}
+.screen.active{display:flex}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.hidden-input{position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
+
+/* HEADER */
+.header{
+  display:flex;flex-direction:column;flex:none;
+  padding:calc(8px + env(safe-area-inset-top)) 12px 8px;
+  background:var(--bg);border-bottom:1px solid var(--border);
+  position:relative;z-index:10;
+}
+.header-row{display:flex;align-items:center;gap:8px;min-height:44px}
+.hbtn{
+  width:42px;height:42px;border-radius:12px;border:0;background:var(--surface);
+  color:var(--text);display:grid;place-items:center;cursor:pointer;flex:none;
+  transition:.12s;
+}
+.hbtn:active{background:var(--surface-2);transform:scale(.94)}
+.hbtn svg{width:20px;height:20px}
+.header .title{flex:1;font-size:15px;font-weight:600;text-align:center;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.steps-bar{
+  display:flex;justify-content:center;gap:6px;padding:8px 0 2px;
+}
+.step-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--surface-2);
+  transition:.25s;cursor:pointer;
+}
+.step-dot.done{background:var(--text-muted)}
+.step-dot.active{background:var(--text);width:24px;border-radius:4px}
+
+/* HOME */
+#home{
+  align-items:center;padding:32px 24px;text-align:center;gap:20px;
+  justify-content:flex-start;padding-top:64px;position:relative;background:var(--bg);
+}
+.theme-quick{
+  position:absolute;top:calc(16px + env(safe-area-inset-top));right:16px;
+  width:44px;height:44px;border-radius:50%;border:1px solid var(--border);
+  background:var(--surface);color:var(--text);font-size:20px;
+  display:grid;place-items:center;cursor:pointer;z-index:20;
+  transition:.15s;
+}
+.theme-quick:active{transform:scale(.9)}
+#home .logo{
+  width:72px;height:72px;border-radius:20px;display:grid;place-items:center;
+  background:var(--surface);border:1px solid var(--border);font-size:32px;
+  animation:pop .5s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+#home h1{font-size:22px;font-weight:700;letter-spacing:-.4px}
+#home .actions{display:flex;flex-direction:column;gap:10px;width:100%;max-width:320px;margin-top:12px}
+.recent-section{width:100%;max-width:420px;margin-top:24px}
+.recent-title{
+  font-size:11px;font-weight:700;color:var(--text-dim);text-transform:uppercase;
+  letter-spacing:.7px;text-align:left;margin-bottom:10px;
+}
+.recent-list{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.recent-list::-webkit-scrollbar{display:none}
+.recent-item{
+  flex:none;width:68px;height:84px;border-radius:10px;background:var(--surface);
+  border:1px solid var(--border);overflow:hidden;cursor:pointer;transition:.12s;
+}
+.recent-item:active{transform:scale(.93)}
+.recent-item img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* BUTTONS */
+.btn{
+  border:0;border-radius:14px;padding:15px 18px;font-size:14.5px;font-weight:600;
+  font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  gap:9px;transition:.12s;background:var(--surface);color:var(--text);width:100%;
+  text-decoration:none;
+}
+.btn:active{transform:scale(.97);opacity:.9}
+.btn.primary{background:var(--primary-bg);color:var(--primary-text);
+  box-shadow:0 4px 14px var(--shadow)}
+.btn.success{background:var(--success);color:#fff;
+  box-shadow:0 4px 14px rgba(74,222,128,.3)}
+.btn.small{padding:12px;font-size:13px;border-radius:12px}
+.btn .ico{font-size:17px}
+
+/* CANVAS STAGE */
+.canvas-stage{
+  flex:1;min-height:0;display:flex;align-items:center;justify-content:center;
+  padding:16px;background:var(--canvas-bg);position:relative;overflow:hidden;
+}
+/* Added thin black border */
+#canvas1,#canvas2,#canvas3,#canvas4{
+  display:block;border-radius:2px;background:#fff;touch-action:none;
+  box-shadow:0 8px 28px var(--shadow);cursor:grab;
+  max-width:100%;max-height:100%;
+  border: 1px solid #000000;
+}
+#canvas1:active,#canvas2:active,#canvas3:active,#canvas4:active{cursor:grabbing}
+.hint{
+  position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
+  background:var(--surface);color:var(--text-muted);font-size:11px;font-weight:500;
+  padding:6px 13px;border-radius:20px;pointer-events:none;white-space:nowrap;
+  transition:opacity .4s;border:1px solid var(--border);
+}
+.hint.hide{opacity:0}
+.stage-tools{position:absolute;top:14px;right:14px;display:flex;gap:6px;z-index:5}
+.tool-btn{
+  width:38px;height:38px;border-radius:10px;border:0;background:rgba(0,0,0,.55);
+  color:#fff;font-size:16px;cursor:pointer;display:grid;place-items:center;
+  backdrop-filter:blur(6px);transition:.12s;
+}
+.tool-btn:active{transform:scale(.92);background:rgba(0,0,0,.75)}
+.tool-btn.on{background:rgba(255,255,255,.9);color:#000}
+
+/* CHIPS */
+.preset-chips{
+  display:flex;gap:8px;overflow-x:auto;padding:12px 14px;
+  background:var(--bg);border-top:1px solid var(--border);flex:none;
+  scrollbar-width:none;
+}
+.preset-chips::-webkit-scrollbar{display:none}
+.chip{
+  flex:none;padding:9px 14px;border-radius:12px;background:var(--surface);color:var(--text-muted);
+  font-size:12.5px;font-weight:600;border:2px solid transparent;cursor:pointer;
+  white-space:nowrap;transition:.15s;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+}
+.chip.active{background:var(--surface-2);border-color:var(--text);color:var(--text)}
+.chip .dim{font-size:10px;color:var(--text-dim);font-weight:500}
+.chip.active .dim{color:var(--text-muted)}
+
+/* CONTROLS */
+.controls{
+  flex:1;min-height:0;overflow-y:auto;background:var(--bg);
+  border-top:1px solid var(--border);
+  padding:16px 16px calc(16px + env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling:touch;
+}
+.control-block{margin-bottom:18px}
+.control-block:last-child{margin-bottom:0}
+.ctrl-label{
+  font-size:10.5px;font-weight:700;color:var(--text-dim);text-transform:uppercase;
+  letter-spacing:.8px;margin-bottom:10px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+
+/* BG REMOVE */
+.remove-panel{text-align:center;padding:8px 0}
+.remove-status{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  padding:12px 16px;margin-bottom:14px;font-size:13px;font-weight:500;
+  color:var(--text-muted);background:var(--surface);border-radius:12px;
+  transition:.2s;flex-wrap:wrap;
+}
+.remove-status .dot{width:8px;height:8px;border-radius:50%;background:var(--text-dim);flex:none}
+.remove-status.ready .dot{background:var(--success);box-shadow:0 0 6px var(--success)}
+.remove-status.loading .dot{background:var(--warn);animation:blink 1s infinite}
+.remove-status.done{color:var(--success)}
+.remove-status.done .dot{background:var(--success)}
+.remove-status.failed{color:var(--danger)}
+.remove-status.failed .dot{background:var(--danger)}
+@keyframes blink{50%{opacity:.3}}
+.retry-btn{
+  padding:4px 10px;border-radius:8px;border:1px solid var(--border-strong);
+  background:var(--surface-2);color:var(--text);font-size:11px;font-weight:600;
+  cursor:pointer;font-family:inherit;
+}
+.btn-big-remove{padding:20px;font-size:15px;border-radius:16px;font-weight:600}
+
+/* COLORS */
+.color-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.color-cell{
+  aspect-ratio:1;border-radius:14px;border:2px solid transparent;
+  cursor:pointer;display:grid;place-items:center;
+  position:relative;transition:.15s;overflow:hidden;
+}
+.color-cell:active{transform:scale(.94)}
+.color-cell.active{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--text)}
+.color-cell.custom{background:var(--surface);color:var(--text-muted);font-size:20px;
+  border:1px solid var(--border-strong)}
+.color-cell input[type=color]{
+  position:absolute;inset:0;opacity:0;cursor:pointer;
+  width:100%;height:100%;border:0;padding:0;
+}
+
+/* SLIDER */
+.slider-row{display:flex;align-items:center;gap:12px;padding:8px 0}
+.slider-row label{font-size:12.5px;color:var(--text);width:82px;flex:none;font-weight:500}
+.slider-row .val{font-size:11.5px;color:var(--text-dim);width:34px;text-align:right;flex:none;
+  font-variant-numeric:tabular-nums}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;flex:1;height:4px;border-radius:2px;
+  background:var(--surface-2);outline:none;min-width:0;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:22px;height:22px;border-radius:50%;
+  background:var(--text);border:3px solid var(--bg);cursor:pointer;
+  box-shadow:0 2px 6px rgba(0,0,0,.3);
+}
+
+/* PREVIEW */
+.preview-stage{
+  flex:1;min-height:0;display:flex;align-items:center;justify-content:center;
+  padding:16px;background:var(--canvas-bg);overflow:hidden;position:relative;
+}
+#previewImg{
+  max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;
+  box-shadow:0 8px 28px var(--shadow);background:#fff;
+}
+.preview-info{
+  position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+  background:var(--surface);color:var(--text-muted);font-size:11.5px;font-weight:600;
+  padding:6px 13px;border-radius:20px;white-space:nowrap;border:1px solid var(--border);
+}
+.input-row{
+  display:flex;align-items:center;gap:10px;padding:14px;background:var(--surface);
+  border-radius:12px;margin-bottom:10px;border:1.5px solid transparent;
+}
+.input-row:focus-within{border-color:var(--border-strong)}
+.input-row input{
+  flex:1;background:none;border:0;color:var(--text);font-size:14px;font-family:inherit;
+  outline:none;font-weight:500;min-width:0;
+}
+.input-row input::placeholder{color:var(--text-dim)}
+.select-row{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px}
+.select-group{background:var(--surface);border-radius:12px;padding:10px 14px}
+.select-group .lbl{font-size:10px;color:var(--text-dim);font-weight:700;
+  text-transform:uppercase;margin-bottom:4px;letter-spacing:.5px}
+.select-group select{
+  width:100%;background:transparent;border:0;color:var(--text);font-family:inherit;
+  font-size:14px;font-weight:600;outline:none;cursor:pointer;padding:2px 0;
+}
+.select-group select option{background:var(--bg);color:var(--text)}
+
+/* FOOTER */
+.footer{
+  flex:none;padding:12px 14px calc(12px + env(safe-area-inset-bottom));
+  background:var(--bg);border-top:1px solid var(--border);
+}
+.footer.two{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+
+/* MODAL */
+.modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;
+  display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px);
+}
+.modal.show{display:flex;animation:fadeIn .18s}
+.modal-content{
+  background:var(--surface);width:100%;max-width:520px;
+  border-radius:22px 22px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom));
+  max-height:92vh;overflow-y:auto;color:var(--text);
+  animation:slideUp .25s cubic-bezier(.34,1.2,.64,1);
+  border-top:1px solid var(--border-strong);
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.modal-head h3{font-size:17px;font-weight:700}
+.modal-close{
+  width:34px;height:34px;border-radius:10px;border:0;background:var(--surface-2);
+  color:var(--text-muted);cursor:pointer;font-size:15px;
+}
+.setting-item{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 0;border-bottom:1px solid var(--border);gap:12px;
+}
+.setting-item:last-child{border-bottom:0}
+.setting-item .left{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.setting-item .name{font-size:14px;font-weight:500;color:var(--text)}
+.setting-item .desc{font-size:11px;color:var(--text-dim);line-height:1.4}
+.lang-toggle{display:flex;gap:6px;flex:none}
+.lang-btn{
+  padding:8px 14px;border-radius:10px;border:1.5px solid var(--border-strong);
+  background:transparent;color:var(--text-muted);font-family:inherit;font-size:13px;
+  font-weight:600;cursor:pointer;transition:.15s;
+}
+.lang-btn.active{border-color:var(--text);background:var(--surface-2);color:var(--text)}
+.switch{
+  position:relative;width:46px;height:26px;border-radius:13px;background:var(--surface-2);
+  cursor:pointer;transition:.2s;flex:none;
+}
+.switch.on{background:var(--text)}
+.switch::after{
+  content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;
+  border-radius:50%;background:var(--bg);transition:.2s;
+}
+.switch.on::after{transform:translateX(20px);background:var(--bg)}
+.settings-select{
+  background:var(--surface-2);color:var(--text);border:0;padding:9px 12px;border-radius:9px;
+  font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;
+}
+.settings-select option{background:var(--bg);color:var(--text)}
+.theme-toggle{display:flex;gap:3px;background:var(--bg);border-radius:10px;padding:3px;flex:none}
+.theme-btn{
+  padding:6px 9px;border-radius:7px;border:0;background:transparent;color:var(--text-muted);
+  font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:.15s;
+  display:flex;align-items:center;gap:4px;
+}
+.theme-btn.active{background:var(--surface-2);color:var(--text)}
+
+/* OVERLAY */
+#overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:900;
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  backdrop-filter:blur(8px);
+}
+#overlay.show{display:flex}
+.spinner{
+  width:44px;height:44px;border-radius:50%;border:3.5px solid var(--surface-2);
+  border-top-color:var(--text);animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+#overlay p{color:var(--text);font-size:14px;font-weight:500;text-align:center;padding:0 24px}
+#successAnim{
+  position:fixed;inset:0;z-index:970;display:none;pointer-events:none;
+  align-items:center;justify-content:center;
+}
+#successAnim.show{display:flex}
+.success-circle{
+  width:96px;height:96px;border-radius:50%;background:var(--success);
+  display:grid;place-items:center;color:#fff;font-size:52px;
+  animation:successPop .6s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:0 12px 40px rgba(74,222,128,.4);
+}
+@keyframes successPop{
+  0%{transform:scale(0);opacity:0}
+  60%{transform:scale(1.15);opacity:1}
+  100%{transform:scale(1);opacity:1}
+}
+#toast{
+  position:fixed;left:50%;bottom:calc(100px + env(safe-area-inset-bottom));
+  transform:translateX(-50%) translateY(16px);background:var(--surface-2);color:var(--text);
+  padding:12px 20px;border-radius:12px;font-size:13.5px;font-weight:500;
+  opacity:0;pointer-events:none;transition:.28s;z-index:950;
+  box-shadow:0 10px 30px rgba(0,0,0,.6);max-width:88vw;text-align:center;
+  border:1px solid var(--border-strong);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.success{border-color:var(--success)}
+#toast.error{border-color:var(--danger)}
+@media print{
+  body > *:not(#printArea){display:none!important}
+  #printArea{display:block!important}
+  #printArea img{display:block;width:100%;height:auto;break-after:page;page-break-after:always}
+  #printArea img:last-child{break-after:auto;page-break-after:auto}
+  @page{margin:0}
+}
+#printArea{display:none}
+
+/* CUSTOMERS / BATCH */
+.cust-panel{padding-bottom:12px}
+.cust-row{display:flex;align-items:center;gap:8px;padding:8px;background:var(--surface);border-radius:12px;margin-bottom:8px}
+.cust-row img{width:36px;height:46px;object-fit:cover;border-radius:5px;background:#fff;flex:none;border:1px solid var(--border-strong)}
+.cust-mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cust-row input.cname{width:100%;background:none;border:0;color:var(--text);font:inherit;font-size:14px;font-weight:600;outline:none;-webkit-user-select:text;user-select:text;padding:2px 0}
+.cust-row input.cname::placeholder{color:var(--text-dim)}
+.cust-row .csz{font-size:10.5px;color:var(--text-dim)}
+.stepper{display:flex;align-items:center;gap:2px;background:var(--bg);border-radius:10px;padding:2px;flex:none}
+.stepper button{width:32px;height:32px;border:0;border-radius:8px;background:var(--surface-2);color:var(--text);font-size:18px;font-weight:700;cursor:pointer;font-family:inherit;line-height:1}
+.stepper button:active{transform:scale(.92)}
+.stepper span{min-width:28px;text-align:center;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums;color:var(--text)}
+.cust-del{width:30px;height:30px;border:0;background:none;color:var(--text-dim);font-size:16px;cursor:pointer;flex:none}
+.page-nav{position:absolute;top:12px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;
+  background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2px 6px;color:var(--text);font-size:12px;font-weight:600}
+.page-nav button{border:0;background:none;color:var(--text);font-size:20px;width:30px;height:30px;cursor:pointer;font-family:inherit}
+.batch-bar{width:100%;max-width:320px;display:flex;gap:8px;align-items:stretch}
+.batch-bar .btn:first-child{flex:1}
+.batch-bar .btn.small{width:auto;padding:0 14px}
+
+/* ---- v6 additions ---- */
+#home{overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0}
+#home > *{flex-shrink:0}
+.recent-list{flex-wrap:wrap;overflow-x:hidden;overflow-y:auto;max-height:230px;padding-bottom:0}
+.recent-item{position:relative}
+.recent-item.sel{outline:3px solid var(--success);outline-offset:-3px}
+.recent-item .chk{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;
+  background:rgba(0,0,0,.55);border:2px solid #fff;color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center}
+.recent-item.sel .chk{background:var(--success);border-color:var(--success)}
+.recent-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.recent-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.mini-btn{border:0;border-radius:8px;padding:6px 10px;background:var(--surface);color:var(--text);
+  font-size:11.5px;font-weight:700;font-family:inherit;cursor:pointer}
+.mini-btn:active{transform:scale(.95)}
+.mini-btn.danger{background:var(--danger);color:#fff}
+.crop-overlay{position:absolute;inset:0;background:var(--canvas-bg);z-index:8;display:flex;flex-direction:column}
+#cropCanvas{flex:1;min-height:0;width:100%;display:block;touch-action:none}
+.crop-bar{display:flex;gap:10px;justify-content:center;padding:10px;background:var(--bg);border-top:1px solid var(--border)}
+.crop-btn{flex:1;max-width:130px;padding:11px 8px;border:0;border-radius:12px;background:var(--surface);color:var(--text);
+  font-weight:700;font-size:14px;font-family:inherit;cursor:pointer}
+.crop-btn:active{transform:scale(.95)}
+.crop-btn.ok{background:var(--success);color:#fff}
+.tool-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:6px}
+.tool-chip{border:2px solid transparent;border-radius:12px;background:var(--surface);color:var(--text-muted);
+  padding:8px 2px;font-size:18px;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+.tool-chip small{font-size:10.5px;font-weight:600}
+.tool-chip.active{background:var(--surface-2);border-color:var(--text);color:var(--text)}
+</style>
+</head>
+<body>
+
+<div id="home" class="screen active">
+  <button class="theme-quick" id="themeQuick" title="Theme">
+    <span id="themeQuickIcon">🌙</span>
+  </button>
+  <div class="logo">📸</div>
+  <h1 data-i18n="appName">Passport Photo</h1>
+  <div class="actions">
+    <label for="fileGallery" class="btn primary" role="button">
+      <span class="ico">🖼️</span><span data-i18n="pickPhoto">Gallery</span>
+    </label>
+    <label for="fileCamera" class="btn" role="button">
+      <span class="ico">📷</span><span data-i18n="openCamera">Camera</span>
+    </label>
+  </div>
+  <div class="batch-bar" id="batchBar" style="display:none">
+    <button class="btn success" id="openBatchBtn"><span id="batchBarText">Sheet</span></button>
+    <button class="btn small" id="clearBatchBtn" title="Clear">🗑️</button>
+  </div>
+  <div class="recent-section" id="recentSection" style="display:none">
+    <div class="recent-head">
+      <div class="recent-title" data-i18n="recent" style="margin:0">Recent</div>
+      <div class="recent-actions">
+        <button class="mini-btn" id="recSelBtn">Select</button>
+        <button class="mini-btn" id="recAllBtn" style="display:none">All</button>
+        <button class="mini-btn danger" id="recDelBtn" style="display:none">Delete</button>
+      </div>
+    </div>
+    <div class="recent-list" id="recentList"></div>
+  </div>
+</div>
+
+<div id="wizard" class="screen">
+  <div class="header">
+    <div class="header-row">
+      <button class="hbtn" id="backBtn" aria-label="Back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="title" id="stepTitle">Crop & Size</div>
+      <button class="hbtn" id="settingsBtn" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+    <div class="steps-bar" id="stepsBar">
+      <div class="step-dot active" data-step="1"></div>
+      <div class="step-dot" data-step="2"></div>
+      <div class="step-dot" data-step="3"></div>
+      <div class="step-dot" data-step="4"></div>
+      <div class="step-dot" data-step="5"></div>
+    </div>
+  </div>
+
+  <div id="step1" class="screen active">
+    <div class="canvas-stage" id="stage1">
+      <canvas id="canvas1"></canvas>
+      <div class="stage-tools">
+        <button class="tool-btn" id="cropBtn" title="Crop"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg></button>
+        <button class="tool-btn" id="rotateBtn" title="Rotate">↻</button>
+        <button class="tool-btn" id="flipBtn" title="Flip">⇄</button>
+      </div>
+      <div class="hint" id="hint1" data-i18n="dragHint">Drag · Pinch to zoom</div>
+      <div class="crop-overlay" id="cropOverlay" style="display:none">
+        <canvas id="cropCanvas"></canvas>
+        <div class="crop-bar">
+          <button class="crop-btn" id="cropCancel">✕</button>
+          <button class="crop-btn" id="cropRatio">Free</button>
+          <button class="crop-btn ok" id="cropApply">✓</button>
+        </div>
+      </div>
+    </div>
+    <div class="preset-chips" id="presetChips"></div>
+    <div class="footer">
+      <button class="btn primary" id="next1"><span data-i18n="next">Next</span></button>
+    </div>
+  </div>
+
+  <div id="step2" class="screen">
+    <div class="canvas-stage" id="stage2">
+      <canvas id="canvas2"></canvas>
+    </div>
+    <div class="controls">
+      <div class="remove-panel">
+        <div class="remove-status" id="removeStatus">
+          <span class="dot"></span>
+          <span id="removeStatusText">Checking AI…</span>
+          <button class="retry-btn" id="aiRetryBtn" style="display:none">Retry</button>
+        </div>
+        <button class="btn primary btn-big-remove" id="removeBgBtn">
+          <span class="ico" style="font-size:20px">✂️</span>
+          <span data-i18n="removeBg">Remove Background</span>
+        </button>
+        <button class="btn small" id="restoreBgBtn" style="margin-top:10px;display:none">
+          <span class="ico">↺</span> <span data-i18n="restoreBg">Restore Original</span>
+        </button>
+      </div>
+      <p style="font-size:11.5px;color:var(--text-dim);text-align:center;line-height:1.6;margin-top:16px;padding:0 12px"
+         data-i18n="removeTip">AI detects the person and removes background. Skip if not needed.</p>
+    </div>
+    <div class="footer">
+      <button class="btn primary" id="next2"><span data-i18n="next">Next</span></button>
+    </div>
+  </div>
+
+  <div id="step3" class="screen">
+    <div class="canvas-stage" id="stage3">
+      <canvas id="canvas3"></canvas>
+    </div>
+    <div class="controls">
+      <div class="control-block">
+        <div class="ctrl-label">
+          <span data-i18n="chooseColor">Background Color</span>
+          <span id="colorStatusBadge" style="font-size:9.5px;font-weight:700;padding:3px 8px;border-radius:8px;background:var(--surface-2);color:var(--text-muted);text-transform:none;letter-spacing:0">—</span>
+        </div>
+        <div class="color-grid" id="colorGrid"></div>
+      </div>
+    </div>
+    <div class="footer">
+      <button class="btn primary" id="next3"><span data-i18n="next">Next</span></button>
+    </div>
+  </div>
+
+  <div id="step4" class="screen">
+    <div class="canvas-stage" id="stage4">
+      <canvas id="canvas4"></canvas>
+      <div class="stage-tools">
+        <button class="tool-btn" id="compareBtn" title="Compare">◐</button>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="control-block">
+        <div class="ctrl-label" data-i18n="quickFixes">Quick Fix</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="btn small" id="autoEnhanceBtn"><span class="ico">✨</span> <span data-i18n="autoEnhance">Auto</span></button>
+          <button class="btn small" id="centerFaceBtn"><span class="ico">🎯</span> <span data-i18n="centerFace">Center</span></button>
+        </div>
+      </div>
+      <div class="control-block">
+        <div class="ctrl-label"><span data-i18n="retouch">Retouch Brush</span><button class="retry-btn" id="undoBrushBtn" data-i18n="undo">↶ Undo</button></div>
+        <div class="tool-row" id="toolRow">
+          <button class="tool-chip active" data-tool="none">✋<small data-i18n="toolMove">Move</small></button>
+          <button class="tool-chip" data-tool="smooth">🧽<small data-i18n="toolClean">Clean</small></button>
+          <button class="tool-chip" data-tool="light">☀️<small data-i18n="toolLight">Lighten</small></button>
+          <button class="tool-chip" data-tool="dark">🌑<small data-i18n="toolDark">Darken</small></button>
+        </div>
+        <div class="slider-row">
+          <label data-i18n="brushSize">Size</label>
+          <input type="range" id="brushSize" min="12" max="100" value="40">
+          <div class="val" id="brushSizeVal">40</div>
+        </div>
+        <div class="slider-row">
+          <label data-i18n="brushStrength">Strength</label>
+          <input type="range" id="brushStr" min="5" max="100" value="40">
+          <div class="val" id="brushStrVal">40</div>
+        </div>
+      </div>
+      <div class="control-block">
+        <div class="ctrl-label" data-i18n="fineTune">Fine-tune</div>
+        <div class="slider-row">
+          <label data-i18n="brightness">Brightness</label>
+          <input type="range" id="brightness" min="50" max="160" value="100">
+          <div class="val" id="brightnessVal">100</div>
+        </div>
+        <div class="slider-row">
+          <label data-i18n="contrast">Contrast</label>
+          <input type="range" id="contrast" min="50" max="160" value="100">
+          <div class="val" id="contrastVal">100</div>
+        </div>
+      </div>
+      <div class="control-block">
+        <button class="btn small" id="resetAllBtn">
+          <span class="ico">🔄</span> <span data-i18n="resetAll">Reset All</span>
+        </button>
+      </div>
+    </div>
+    <div class="footer">
+      <button class="btn primary" id="next4"><span data-i18n="next">Next</span></button>
+    </div>
+  </div>
+
+  <div id="step5" class="screen">
+    <div class="preview-stage">
+      <img id="previewImg" alt="Preview">
+      <div class="page-nav" id="pageNav" style="display:none">
+        <button id="prevPage" aria-label="Previous">‹</button>
+        <span id="pageLbl">1/1</span>
+        <button id="nextPage" aria-label="Next">›</button>
+      </div>
+      <div class="preview-info" id="previewInfo">—</div>
+    </div>
+    <div class="controls cust-panel" style="flex:0 0 auto;max-height:46vh">
+      <div id="custList"></div>
+      <button class="btn small" id="addCustBtn"><span class="ico">➕</span> <span id="addCustText">Add another customer</span></button>
+      <div class="select-row" style="margin-top:10px">
+        <div class="select-group">
+          <div class="lbl" data-i18n="sheetSize">Sheet</div>
+          <select id="sheetSize">
+            <option value="4x6">4×6 in</option>
+            <option value="a5">A5</option>
+            <option value="a4" selected>A4</option>
+          </select>
+        </div>
+        <div class="select-group">
+          <div class="lbl" data-i18n="position">Position</div>
+          <select id="posSel">
+            <option value="top" data-i18n="posTop">Top</option>
+            <option value="topleft" data-i18n="posTopLeft">Top-left</option>
+            <option value="center" data-i18n="posCenter">Center</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="footer two">
+      <button class="btn primary" id="downloadBtn">
+        <span class="ico">⬇️</span> <span data-i18n="download">Download</span>
+      </button>
+      <button class="btn success" id="printBtn">
+        <span class="ico">🖨️</span> <span data-i18n="print">Print</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="settingsModal">
+  <div class="modal-content">
+    <div class="modal-head">
+      <h3 data-i18n="settings">Settings</h3>
+      <button class="modal-close" id="closeSettings">✕</button>
+    </div>
+    <div class="setting-item">
+      <div class="left"><div class="name" data-i18n="theme">Theme</div>
+        <div class="desc" data-i18n="themeDesc">App appearance</div></div>
+      <div class="theme-toggle">
+        <button class="theme-btn" data-theme="auto" title="Auto">🅰️</button>
+        <button class="theme-btn" data-theme="light" title="Light">☀️</button>
+        <button class="theme-btn" data-theme="dark" title="Dark">🌙</button>
+        <button class="theme-btn" data-theme="amoled" title="AMOLED">⬛</button>
+      </div>
+    </div>
+    <div class="setting-item">
+      <div class="left"><div class="name" data-i18n="language">Language</div>
+        <div class="desc" data-i18n="languageDesc">Interface</div></div>
+      <div class="lang-toggle">
+        <button class="lang-btn" data-lang="en">EN</button>
+        <button class="lang-btn" data-lang="bn">বাং</button>
+      </div>
+    </div>
+    <div class="setting-item">
+      <div class="left"><div class="name" data-i18n="defaultSize">Default Size</div>
+        <div class="desc" data-i18n="defaultSizeDesc">Preselected</div></div>
+      <select class="settings-select" id="defaultSizeSel">
+        <option value="passport">Passport</option>
+        <option value="stamp">Stamp</option>
+        <option value="panCard">PAN</option>
+        <option value="usVisa">US Visa</option>
+        <option value="inch1">1 inch</option>
+      </select>
+    </div>
+    <div class="setting-item">
+      <div class="left"><div class="name" data-i18n="defaultColor">Default Color</div>
+        <div class="desc" data-i18n="defaultColorDesc">After remove</div></div>
+      <select class="settings-select" id="defaultColorSel">
+        <option value="#ffffff">White</option>
+        <option value="#fef3c7">Cream</option>
+        <option value="#bfdbfe">Light Blue</option>
+        <option value="#2563eb">Blue</option>
+        <option value="#e5e7eb">Light Grey</option>
+      </select>
+    </div>
+    <div class="setting-item">
+      <div class="left"><div class="name" data-i18n="defaultSheet">Default Sheet</div>
+        <div class="desc" data-i18n="defaultSheetDesc">Print size</div></div>
+      <select class="settings-select" id="defaultSheetSel">
+        <option value="4x6">4×6 in</option>
+        <option value="a5">A5</option>
+        <option value="a4" selected>A4</option>
+      </select>
+    </div>
+    <div class="setting-item">
+      <div class="left"><div class="name" data-i18n="defaultCopies">Default Copies</div>
+        <div class="desc" data-i18n="defaultCopiesDesc">Per sheet</div></div>
+      <select class="settings-select" id="defaultCopiesSel">
+        <option value="2">2</option><option value="4">4</option>
+        <option value="6" selected>6</option><option value="8">8</option>
+        <option value="12">12</option>
+      </select>
+    </div>
+    <div class="setting-item">
+      <div class="left"><div class="name" data-i18n="autoEnhanceDefault">Auto Enhance</div>
+        <div class="desc" data-i18n="autoEnhanceDefaultDesc">On new photo</div></div>
+      <div class="switch on" id="autoEnhanceSwitch"></div>
+    </div>
+    <div class="setting-item">
+      <div class="left"><div class="name" data-i18n="bgEngine">BG Engine</div>
+        <div class="desc" data-i18n="bgEngineDesc">Best = hair edges</div></div>
+      <select class="settings-select" id="bgEngineSel">
+        <option value="best" selected>🤖 Best (HD)</option>
+        <option value="fast">⚡ Fast</option>
+        <option value="light">Light (basic)</option>
+      </select>
+    </div>
+    <div class="setting-item">
+      <div class="left"><div class="name" data-i18n="resetSettings">Reset App</div>
+        <div class="desc" data-i18n="resetSettingsDesc">Clear settings</div></div>
+      <button class="btn small" id="resetAppBtn" style="width:auto;padding:9px 14px">
+        <span data-i18n="reset">Reset</span>
+      </button>
+    </div>
+    <div class="setting-item">
+      <div class="left"><div class="name" data-i18n="version">Version</div>
+        <div class="desc">4.1 · Offline</div></div>
+    </div>
+  </div>
+</div>
+
+<input type="file" accept="image/*" id="fileGallery" class="hidden-input">
+<input type="file" accept="image/*" capture="environment" id="fileCamera" class="hidden-input">
+<div id="overlay"><div class="spinner"></div><p id="overlayText">Processing…</p></div>
+<div id="successAnim"><div class="success-circle">✓</div></div>
+<div id="toast"></div>
+<div id="printArea"></div>
+
+<script>
+(function(){
+"use strict";
+
+const LS = {
+  get(k){ try { return window.localStorage.getItem(k); } catch(e){ return null; } },
+  set(k,v){ try { window.localStorage.setItem(k,v); } catch(e){} },
+  clear(){ try { window.localStorage.clear(); } catch(e){} }
+};
+
+const I18N = {
+  en: {
+    appName:'Passport Photo', pickPhoto:'Gallery', openCamera:'Camera', next:'Next',
+    stepTitles:['Crop & Size','Remove Background','Choose Color','Enhance','Preview'],
+    dragHint:'Drag · Pinch to zoom', recent:'Recent',
+    removeBg:'Remove Background', restoreBg:'Restore Original',
+    removeTip:'AI detects the person and removes background. Skip if not needed.',
+    aiReady:'AI ready', aiLoading:'Loading AI model…', aiFailed:'AI not loaded', aiDone:'Background removed',
+    chooseColor:'Background Color', quickFixes:'Quick Fix', autoEnhance:'Auto', centerFace:'Center',
+    fineTune:'Fine-tune', brightness:'Brightness', contrast:'Contrast', resetAll:'Reset All',
+    copies:'Copies', sheetSize:'Sheet', customerNamePh:'Customer name',
+    print:'Print', download:'Download', settings:'Settings',
+    theme:'Theme', themeDesc:'App appearance', language:'Language', languageDesc:'Interface',
+    defaultSize:'Default Size', defaultSizeDesc:'Preselected', defaultColor:'Default Color', defaultColorDesc:'After remove',
+    defaultSheet:'Default Sheet', defaultSheetDesc:'Print size', defaultCopies:'Default Copies', defaultCopiesDesc:'Per sheet',
+    autoEnhanceDefault:'Auto Enhance', autoEnhanceDefaultDesc:'On new photo', bgEngine:'BG Engine', bgEngineDesc:'AI or Basic',
+    resetSettings:'Reset App', resetSettingsDesc:'Clear settings', reset:'Reset', version:'Version',
+    msgLoading:'Loading photo…', msgProcessing:'Processing…', msgNoImage:'Load photo first',
+    msgBgRemoving:'Removing background…', msgBgDone:'Background removed', msgBgRestored:'Original restored',
+    msgBgFailed:'Failed — try again', msgEnhanced:'Enhanced', msgFaceCentered:'Centered', msgFaceFallback:'Centered manually',
+    msgResetDone:'Reset complete', msgSaved:'Saved!', msgError:'Error', msgAiLoading:'Downloading AI model (first time only)…',
+    msgMaxFit:'Max fit reached', msgPhotoSaved:'Photo saved to Gallery',
+    addCust:'Add another customer', custDefault:'Customer', openBatch:'Open sheet', photosWord:'photos', customersWord:'customers', pageWord:'Page', emptyBatch:'No customers yet', clearAsk:'Clear all customers?', msgModelDl:'Downloading HD model (first time only)',
+    select:'Select', selectAll:'All', done:'Done', deleteSel:'Delete', clearRecentAsk:'Delete selected photos?', retouch:'Retouch Brush', toolMove:'Move', toolClean:'Clean', toolLight:'Lighten', toolDark:'Darken', brushSize:'Size', brushStrength:'Strength', undo:'↶ Undo', cropFree:'Free', msgCropped:'Cropped', position:'Position', posTop:'Top', posTopLeft:'Top-left', posCenter:'Center'
+  },
+  bn: {
+    appName:'পাসপোর্ট ফটো', pickPhoto:'গ্যালারি', openCamera:'ক্যামেরা', next:'পরবর্তী',
+    stepTitles:['ক্রপ ও সাইজ','ব্যাকগ্রাউন্ড সরান','রঙ বাছুন','উন্নত করুন','প্রিভিউ'],
+    dragHint:'ড্র্যাগ · পিঞ্চ জুম', recent:'সাম্প্রতিক',
+    removeBg:'ব্যাকগ্রাউন্ড সরান', restoreBg:'মূল ছবি',
+    removeTip:'AI ব্যক্তি চিনে ব্যাকগ্রাউন্ড সরায়। দরকার না হলে Next।',
+    aiReady:'AI প্রস্তুত', aiLoading:'AI লোড হচ্ছে…', aiFailed:'বেসিক মোড', aiDone:'ব্যাকগ্রাউন্ড সরানো হয়েছে',
+    chooseColor:'ব্যাকগ্রাউন্ড রঙ', quickFixes:'কুইক ফিক্স', autoEnhance:'অটো', centerFace:'কেন্দ্র',
+    fineTune:'ফাইন-টিউন', brightness:'উজ্জ্বলতা', contrast:'কনট্রাস্ট', resetAll:'রিসেট',
+    copies:'কপি', sheetSize:'শীট', customerNamePh:'গ্রাহকের নাম',
+    print:'প্রিন্ট', download:'ডাউনলোড', settings:'সেটিংস',
+    theme:'থিম', themeDesc:'অ্যাপের চেহারা', language:'ভাষা', languageDesc:'ইন্টারফেস',
+    defaultSize:'ডিফল্ট সাইজ', defaultSizeDesc:'প্রিসিলেক্টেড', defaultColor:'ডিফল্ট রঙ', defaultColorDesc:'সরানোর পরে',
+    defaultSheet:'ডিফল্ট শীট', defaultSheetDesc:'প্রিন্ট পেপার', defaultCopies:'ডিফল্ট কপি', defaultCopiesDesc:'প্রতি শীটে',
+    autoEnhanceDefault:'অটো এনহ্যান্স', autoEnhanceDefaultDesc:'নতুন ছবিতে', bgEngine:'BG ইঞ্জিন', bgEngineDesc:'AI বা বেসিক',
+    resetSettings:'অ্যাপ রিসেট', resetSettingsDesc:'সব সেটিংস মুছুন', reset:'রিসেট', version:'সংস্করণ',
+    msgLoading:'ছবি লোড হচ্ছে…', msgProcessing:'প্রসেস…', msgNoImage:'আগে ছবি লোড করুন',
+    msgBgRemoving:'ব্যাকগ্রাউন্ড সরানো হচ্ছে…', msgBgDone:'ব্যাকগ্রাউন্ড সরানো হয়েছে', msgBgRestored:'মূল ছবি ফিরে এসেছে',
+    msgBgFailed:'ব্যর্থ — আবার চেষ্টা করুন', msgEnhanced:'উন্নত', msgFaceCentered:'কেন্দ্রীভূত', msgFaceFallback:'ম্যানুয়ালি কেন্দ্রীভূত',
+    msgResetDone:'রিসেট সম্পূর্ণ', msgSaved:'সেভ হয়েছে!', msgError:'সমস্যা', msgAiLoading:'AI মডেল ডাউনলোড হচ্ছে (প্রথমবার)…',
+    msgMaxFit:'সর্বোচ্চ ফিট', msgPhotoSaved:'ফটো গ্যালারিতে সেভ হয়েছে',
+    addCust:'আরেকজন গ্রাহক যোগ করুন', custDefault:'গ্রাহক', openBatch:'শীট খুলুন', photosWord:'ছবি', customersWord:'গ্রাহক', pageWord:'পেজ', emptyBatch:'কোনো গ্রাহক নেই', clearAsk:'সব গ্রাহক মুছবেন?', msgModelDl:'HD মডেল ডাউনলোড হচ্ছে (প্রথমবার)',
+    select:'বাছুন', selectAll:'সব', done:'শেষ', deleteSel:'মুছুন', clearRecentAsk:'নির্বাচিত ছবি মুছবেন?', retouch:'রিটাচ ব্রাশ', toolMove:'সরান', toolClean:'ক্লিন', toolLight:'হালকা', toolDark:'গাঢ়', brushSize:'সাইজ', brushStrength:'শক্তি', undo:'↶ আনডু', cropFree:'ফ্রি', msgCropped:'ক্রপ হয়েছে', position:'পজিশন', posTop:'উপরে', posTopLeft:'উপরে-বামে', posCenter:'মাঝখানে'
+  }
+};
+let lang = LS.get('pp_lang') || 'en';
+const t = k => (I18N[lang] && I18N[lang][k]) || I18N.en[k] || k;
+const tArr = (k, i) => {
+  const arr = I18N[lang] && I18N[lang][k];
+  if(arr && arr[i] !== undefined) return arr[i];
+  return (I18N.en[k] && I18N.en[k][i]) || '';
+};
+
+const BG_COLORS = [
+  '#ffffff', '#fef3c7', '#f5e6d3', '#bfdbfe', '#7dd3fc',
+  '#2563eb', '#1e40af', '#e5e7eb', '#9ca3af', '#fecaca',
+  '#dc2626', '#a7f3d0', '#10b981', '#fbcfe8'
+];
+
+const DPI = 300, MM_PER_IN = 25.4, MAX_SOURCE = 1400;
+const PRESETS = [
+  { id:'passport',   name:'Passport',    w:35, h:45 },
+  { id:'stamp',      name:'Stamp',       w:20, h:25 },
+  { id:'stampSmall', name:'Stamp Small', w:20, h:15 },
+  { id:'inch1',      name:'1 inch',      w:25, h:25 },
+  { id:'inch15',     name:'1.5 inch',    w:38, h:38 },
+  { id:'panCard',    name:'PAN Card',    w:25, h:35 },
+  { id:'usVisa',     name:'US Visa',     w:51, h:51 }
+];
+
+const state = {
+  step: 0, originalCanvas: null, sourceCanvas: null, bgRemoved: false,
+  currentSize: { w:35, h:45 }, currentPreset: 'passport', activeColor: '',
+  brightness: 100, contrast: 100, autoEnhance: true, bgEngine: 'best',
+  customers: [], currentCustId: null, pages: [], pageIdx: 0,
+  brushTool: 'none', brushSize: 40, brushStr: 40, retouchBase: null, retouchTarget: null, undoStack: []
+};
+let custSeq = 0;
+
+const crop = { cx: 0.5, cy: 0.5, zoom: 1 };
+const brush = { active: false, pid: null, backup: null, blur: null, blurCtx: null, bbox: null, last: null, raf: 0, pos: null };
+
+let selfieSeg = null;
+let aiReady = false;
+let aiLoading = false;
+let aiFailed = false;
+let maskCache = { ref: null, mask: null };
+let maskPromise = null;
+let aiInitPromise = null;
+
+const THEME_CYCLE = ['auto', 'light', 'dark', 'amoled'];
+const THEME_ICONS = { auto:'🅰️', light:'☀️', dark:'🌙', amoled:'⬛' };
+
+function getSystemTheme(){
+  try {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  } catch(e){ return 'dark'; }
+}
+function resolveTheme(theme){
+  return theme === 'auto' ? getSystemTheme() : theme;
+}
+function applyTheme(theme){
+  const resolved = resolveTheme(theme);
+  document.documentElement.setAttribute('data-theme', resolved);
+  document.body.setAttribute('data-theme', resolved);
+  
+  const bg = resolved === 'light' ? '#ffffff' : (resolved === 'amoled' ? '#000000' : '#171717');
+  const fg = resolved === 'light' ? '#171717' : '#ededed';
+  
+  document.documentElement.style.background = bg;
+  document.body.style.background = bg;
+  document.documentElement.style.color = fg;
+  document.body.style.color = fg;
+  document.documentElement.style.colorScheme = resolved === 'light' ? 'light' : 'dark';
+  document.body.style.colorScheme = resolved === 'light' ? 'light' : 'dark';
+  
+  const themeMeta = document.querySelector('meta[name="theme-color"]');
+  if(themeMeta) themeMeta.setAttribute('content', bg);
+  const csMeta = document.querySelector('meta[name="color-scheme"]');
+  if(csMeta) csMeta.setAttribute('content', resolved === 'light' ? 'light' : 'dark');
+  
+  document.querySelectorAll('.theme-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.theme === theme);
+  });
+  
+  const qi = $('themeQuickIcon');
+  if(qi) qi.textContent = THEME_ICONS[theme] || '🌙';
+  
+  void document.body.offsetHeight;
+}
+
+const $ = id => document.getElementById(id);
+function clamp(v,a,b){ return v<a?a:v>b?b:v; }
+function mmToPx(mm){ return Math.round(mm / MM_PER_IN * DPI); }
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+  if(id === 'home' && typeof updateBatchBar === 'function') updateBatchBar();
+}
+function busy(show, txt){
+  if(txt) $('overlayText').textContent = txt;
+  $('overlay').classList.toggle('show', show);
+}
+function showSuccess(){
+  $('successAnim').classList.add('show');
+  if(navigator.vibrate) navigator.vibrate([50, 40, 80]);
+  setTimeout(()=> $('successAnim').classList.remove('show'), 1400);
+}
+function toast(msg, type='', ms=2200){
+  const el = $('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=> el.className = '', ms);
+}
+function applyLang(){
+  if($('addCustText')) $('addCustText').textContent = t('addCust');
+  if(typeof updateRecentUI === 'function') updateRecentUI();
+  if(typeof updateBatchBar === 'function') updateBatchBar();
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const k = el.dataset.i18n;
+    if(k === 'stepTitles') return;
+    el.textContent = t(k);
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{
+    el.placeholder = t(el.dataset.i18nPh);
+  });
+  document.documentElement.lang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.lang === lang);
+  });
+  if(state.step > 0) $('stepTitle').textContent = tArr('stepTitles', state.step-1);
+}
+function updateStepDots(){
+  document.querySelectorAll('.step-dot').forEach(d=>{
+    const n = +d.dataset.step;
+    d.classList.toggle('active', n === state.step);
+    d.classList.toggle('done', n < state.step);
+  });
+}
+
+const canvas1 = $('canvas1'), ctx1 = canvas1.getContext('2d');
+const canvas2 = $('canvas2'), ctx2 = canvas2.getContext('2d');
+const canvas3 = $('canvas3'), ctx3 = canvas3.getContext('2d');
+const canvas4 = $('canvas4'), ctx4 = canvas4.getContext('2d');
+
+function getCanvasForStep(s){ return s===1?canvas1 : s===2?canvas2 : s===3?canvas3 : canvas4; }
+function getCtxForStep(s){ return s===1?ctx1 : s===2?ctx2 : s===3?ctx3 : ctx4; }
+
+async function ensureAILoaded(){
+  if(aiReady) return true;
+  if(aiFailed) return false;
+  if(aiInitPromise) return aiInitPromise;
+  
+  aiInitPromise = new Promise(async (resolve) => {
+    let waited = 0;
+    while(typeof SelfieSegmentation === 'undefined' && waited < 10000){
+      await new Promise(r => setTimeout(r, 200));
+      waited += 200;
+    }
+    if(typeof SelfieSegmentation === 'undefined'){
+      aiFailed = true;
+      aiInitPromise = null;
+      resolve(false);
+      return;
+    }
+    aiLoading = true;
+    setAiStatus('loading');
+    try {
+      selfieSeg = new SelfieSegmentation({
+        locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${f}`
+      });
+      selfieSeg.setOptions({ modelSelection: 1 });
+      selfieSeg.onResults(() => {});
+      const warm = document.createElement('canvas');
+      warm.width = 64; warm.height = 64;
+      warm.getContext('2d').fillRect(0,0,64,64);
+      await selfieSeg.send({ image: warm });
+      aiReady = true;
+      setAiStatus('ready');
+      resolve(true);
+    } catch(e){
+      aiFailed = true;
+      setAiStatus('failed');
+      resolve(false);
+    } finally {
+      aiLoading = false;
+      aiInitPromise = null;
+    }
+  });
+  return aiInitPromise;
+}
+
+async function getRawMask(canvas){
+  if(maskCache.ref === canvas && maskCache.mask) return maskCache.mask;
+  if(maskPromise) return maskPromise;
+  
+  maskPromise = new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      maskPromise = null;
+      reject(new Error('AI timeout'));
+    }, 12000);
+    
+    selfieSeg.onResults(results => {
+      clearTimeout(timeoutId);
+      try {
+        if(!results.segmentationMask){
+          maskPromise = null;
+          reject(new Error('No mask'));
+          return;
+        }
+        const w = canvas.width, h = canvas.height;
+        const m = document.createElement('canvas');
+        m.width = w; m.height = h;
+        const mctx = m.getContext('2d');
+        mctx.drawImage(results.segmentationMask, 0, 0, w, h);
+        
+        const img = mctx.getImageData(0, 0, w, h);
+        const d = img.data;
+        let opaqueCount = 0, sampleCount = 0;
+        for(let i = 3; i < d.length; i += 400){
+          if(d[i] > 128) opaqueCount++;
+          sampleCount++;
+        }
+        const ratio = opaqueCount / sampleCount;
+        
+        if(ratio < 0.02 || ratio > 0.98){
+          maskPromise = null;
+          reject(new Error('Invalid mask ratio'));
+          return;
+        }
+        
+        maskCache = { ref: canvas, mask: m };
+        maskPromise = null;
+        resolve(m);
+      } catch(e){
+        maskPromise = null;
+        reject(e);
+      }
+    });
+    selfieSeg.send({ image: canvas }).catch(err => {
+      clearTimeout(timeoutId);
+      maskPromise = null;
+      reject(err);
+    });
+  });
+  return maskPromise;
+}
+
+/* ============ BETTER MASK REFINEMENT (CHOKE) ============ */
+function refineMask(rawMask, srcCanvas){
+  const w = srcCanvas.width, h = srcCanvas.height;
+
+  // 1. Upscale mask
+  const up = document.createElement('canvas');
+  up.width = w; up.height = h;
+  const uctx = up.getContext('2d', { willReadFrequently: true });
+  uctx.imageSmoothingEnabled = true;
+  uctx.imageSmoothingQuality = 'high';
+  uctx.drawImage(rawMask, 0, 0, w, h);
+
+  const img = uctx.getImageData(0, 0, w, h);
+  const d = img.data;
+
+  // 2. Check if mask is RGB instead of Alpha
+  let isRGB = false;
+  for(let i = 0; i < 2000; i += 4){
+    if(d[i+3] > 250 && d[i] > 10 && d[i] < 245) { isRGB = true; break; }
+  }
+  if(isRGB){
+    for(let i = 0; i < d.length; i += 4){
+      const lum = Math.round(0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2]);
+      d[i] = 255; d[i+1] = 255; d[i+2] = 255;
+      d[i+3] = lum;
+    }
+    uctx.putImageData(img, 0, 0);
+  }
+
+  // 3. Erosion (Choke) by 1px to remove halo (color bleed)
+  const eroded = document.createElement('canvas');
+  eroded.width = w; eroded.height = h;
+  const ectx = eroded.getContext('2d');
+  
+  ectx.drawImage(up, 0, 0);
+  ectx.globalCompositeOperation = 'destination-in';
+  ectx.drawImage(up, -1, 0);
+  ectx.drawImage(up, 1, 0);
+  ectx.drawImage(up, 0, -1);
+  ectx.drawImage(up, 0, 1);
+
+  // 4. Slight blur to smooth the hard cut
+  const soft = document.createElement('canvas');
+  soft.width = w; soft.height = h;
+  const sctx = soft.getContext('2d');
+  sctx.filter = 'blur(1px)';
+  sctx.drawImage(eroded, 0, 0);
+
+  return soft;
+}
+
+function compositeWithColor(srcCanvas, mask, color){
+  const w = srcCanvas.width, h = srcCanvas.height;
+  const out = document.createElement('canvas');
+  out.width = w; out.height = h;
+  const octx = out.getContext('2d');
+  octx.fillStyle = color;
+  octx.fillRect(0, 0, w, h);
+
+  const fg = document.createElement('canvas');
+  fg.width = w; fg.height = h;
+  const fctx = fg.getContext('2d');
+  fctx.drawImage(srcCanvas, 0, 0);
+  fctx.globalCompositeOperation = 'destination-in';
+  fctx.drawImage(mask, 0, 0, w, h);
+
+  octx.drawImage(fg, 0, 0);
+  return out;
+}
+
+function setAiStatus(status, customText){
+  const el = $('removeStatus');
+  const txt = $('removeStatusText');
+  const retry = $('aiRetryBtn');
+  if(!el || !txt) return;
+  el.className = 'remove-status ' + status;
+  if(customText) txt.textContent = customText;
+  else if(status === 'ready') txt.textContent = t('aiReady');
+  else if(status === 'loading') txt.textContent = t('aiLoading');
+  else if(status === 'done') txt.textContent = t('aiDone');
+  else if(status === 'failed') txt.textContent = t('aiFailed');
+  if(retry) retry.style.display = (status === 'failed') ? 'inline-block' : 'none';
+}
+
+/* ============ HD BACKGROUND REMOVAL (imgly ISNet) ============ */
+let imglyFn = null, imglyFailed = false, imglyLoading = null;
+let cutCache = { ref: null, cut: null, engine: '' };
+const IMGLY_URLS = [
+  'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm',
+  'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm'
+];
+async function loadImgly(){
+  if(imglyFn) return imglyFn;
+  if(imglyFailed) return null;
+  if(imglyLoading) return imglyLoading;
+  imglyLoading = (async ()=>{
+    for(const url of IMGLY_URLS){
+      try {
+        const mod = await import(url);
+        const fn = mod.removeBackground || (mod.default && mod.default.removeBackground) || mod.default;
+        if(typeof fn === 'function'){ imglyFn = fn; return fn; }
+      } catch(e){ console.warn('imgly load failed', url, e); }
+    }
+    imglyFailed = true;
+    return null;
+  })();
+  const r = await imglyLoading;
+  imglyLoading = null;
+  return r;
+}
+async function warmEngine(){
+  if(state.bgEngine === 'light'){ return ensureAILoaded(); }
+  setAiStatus('loading');
+  const fn = await loadImgly();
+  if(fn){ setAiStatus('ready'); return true; }
+  return ensureAILoaded();
+}
+function engineStatus(){
+  if(aiReady || imglyFn) return 'ready';
+  if(aiFailed && (imglyFailed || state.bgEngine === 'light')) return 'failed';
+  return 'loading';
+}
+
+/* Clean edges: sharpen matte, remove old-background colour from hair/shoulder edges */
+function finishCutout(cut, orig){
+  const w = cut.width, h = cut.height;
+  const cctx = cut.getContext('2d', { willReadFrequently: true });
+  const img = cctx.getImageData(0, 0, w, h);
+  const d = img.data;
+  let od = null;
+  try { od = orig.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, w, h).data; } catch(e){}
+  let br = 0, bgc = 0, bb = 0, bn = 0;
+  if(od){
+    for(let i = 0; i < d.length; i += 28){
+      if(d[i+3] < 6){ br += od[i]; bgc += od[i+1]; bb += od[i+2]; bn++; }
+    }
+  }
+  const hasBg = !!od && bn > 50;
+  if(hasBg){ br /= bn; bgc /= bn; bb /= bn; }
+  const bluish = hasBg && bb > br + 30 && bb > bgc + 30;
+  for(let i = 0; i < d.length; i += 4){
+    const a = d[i+3];
+    if(a === 0) continue;
+    let tt = (a - 20) / (235 - 20);
+    tt = tt < 0 ? 0 : tt > 1 ? 1 : tt;
+    const a2 = tt * tt * (3 - 2 * tt);
+    if(a < 250 && hasBg){
+      const af = Math.max(a / 255, 0.25);
+      let r = (od[i]   - (1 - af) * br)  / af;
+      let g = (od[i+1] - (1 - af) * bgc) / af;
+      let b = (od[i+2] - (1 - af) * bb)  / af;
+      if(bluish){
+        const m = r > g ? r : g;
+        if(b > m) b = m + (b - m) * 0.35;
+      }
+      d[i]   = r < 0 ? 0 : r > 255 ? 255 : r;
+      d[i+1] = g < 0 ? 0 : g > 255 ? 255 : g;
+      d[i+2] = b < 0 ? 0 : b > 255 ? 255 : b;
+    }
+    d[i+3] = Math.round(a2 * 255);
+  }
+  cctx.putImageData(img, 0, 0);
+  return cut;
+}
+
+function maskedCut(srcCanvas, mask){
+  const w = srcCanvas.width, h = srcCanvas.height;
+  const fg = document.createElement('canvas');
+  fg.width = w; fg.height = h;
+  const fctx = fg.getContext('2d', { willReadFrequently: true });
+  fctx.drawImage(srcCanvas, 0, 0);
+  fctx.globalCompositeOperation = 'destination-in';
+  fctx.drawImage(mask, 0, 0, w, h);
+  fctx.globalCompositeOperation = 'source-over';
+  return fg;
+}
+function blobToCanvas(blob, w, h){
+  return new Promise((resolve, reject)=>{
+    const url = URL.createObjectURL(blob);
+    const im = new Image();
+    im.onload = ()=>{
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const x = c.getContext('2d', { willReadFrequently: true });
+      x.drawImage(im, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      resolve(c);
+    };
+    im.onerror = ()=>{ URL.revokeObjectURL(url); reject(new Error('cutout decode')); };
+    im.src = url;
+  });
+}
+
+async function getCutout(canvas){
+  if(cutCache.ref === canvas && cutCache.cut && cutCache.engine === state.bgEngine) return cutCache.cut;
+  // 1) HD model
+  if(state.bgEngine !== 'light'){
+    const fn = await loadImgly();
+    if(fn){
+      try {
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+        const out = await fn(blob, {
+          model: state.bgEngine === 'fast' ? 'isnet_quint8' : 'isnet_fp16',
+          output: { format: 'image/png', quality: 1 },
+          progress: (key, cur, total)=>{
+            if(total && String(key).indexOf('fetch') === 0){
+              $('overlayText').textContent = t('msgModelDl') + ' ' + Math.round(cur / total * 100) + '%';
+            } else if(String(key).indexOf('compute') === 0){
+              $('overlayText').textContent = t('msgBgRemoving');
+            }
+          }
+        });
+        let cut = await blobToCanvas(out, canvas.width, canvas.height);
+        cut = finishCutout(cut, canvas);
+        cutCache = { ref: canvas, cut, engine: state.bgEngine };
+        return cut;
+      } catch(e){ console.warn('HD removal failed, fallback to light:', e); }
+    }
+  }
+  // 2) fallback: MediaPipe
+  if(!aiReady && !aiFailed){ busy(true, t('msgAiLoading')); await ensureAILoaded(); }
+  if(aiReady){
+    busy(true, t('msgBgRemoving'));
+    const raw = await getRawMask(canvas);
+    const mask = refineMask(raw, canvas);
+    let cut = maskedCut(canvas, mask);
+    cut = finishCutout(cut, canvas);
+    cutCache = { ref: canvas, cut, engine: state.bgEngine };
+    return cut;
+  }
+  return null;
+}
+function compositeCut(cut, color){
+  const out = document.createElement('canvas');
+  out.width = cut.width; out.height = cut.height;
+  const o = out.getContext('2d');
+  o.fillStyle = color;
+  o.fillRect(0, 0, out.width, out.height);
+  o.drawImage(cut, 0, 0);
+  return out;
+}
+
+function setAiStatus(status, customText){
+  const el = $('removeStatus');
+  const txt = $('removeStatusText');
+  const retry = $('aiRetryBtn');
+  if(!el || !txt) return;
+  el.className = 'remove-status ' + status;
+  if(customText) txt.textContent = customText;
+  else if(status === 'ready') txt.textContent = t('aiReady');
+  else if(status === 'loading') txt.textContent = t('aiLoading');
+  else if(status === 'done') txt.textContent = t('aiDone');
+  else if(status === 'failed') txt.textContent = t('aiFailed');
+  if(retry) retry.style.display = (status === 'failed') ? 'inline-block' : 'none';
+}
+
+async function removeBgWithColor(color){
+  if(!state.originalCanvas) return false;
+  try {
+    busy(true, t('msgBgRemoving'));
+    const cut = await getCutout(state.originalCanvas);
+    if(!cut) return false;
+    state.sourceCanvas = compositeCut(cut, color || '#ffffff');
+    state.bgRemoved = true;
+    state.activeColor = color || '#ffffff';
+    drawAll();
+    showRestoreUI();
+    toast(t('msgBgDone'), 'success');
+    return true;
+  } catch(e){
+    console.warn('Remove BG failed:', e);
+    return false;
+  }
+}
+
+function showRestoreUI(){
+  $('removeBgBtn').style.display = 'none';
+  $('restoreBgBtn').style.display = 'flex';
+  setAiStatus('done');
+  updateColorBadge();
+}
+function hideRestoreUI(){
+  $('removeBgBtn').style.display = 'flex';
+  $('restoreBgBtn').style.display = 'none';
+  setAiStatus(engineStatus());
+  updateColorBadge();
+}
+function updateColorBadge(){
+  const badge = $('colorStatusBadge');
+  if(!badge) return;
+  if(state.bgRemoved && state.activeColor){
+    badge.textContent = '✓ ' + (lang==='bn' ? 'প্রয়োগ' : 'Applied');
+    badge.style.color = 'var(--text)';
+  } else if(state.bgRemoved){
+    badge.textContent = lang==='bn' ? 'রঙ বাছুন' : 'Pick color';
+    badge.style.color = 'var(--text-muted)';
+  } else {
+    badge.textContent = lang==='bn' ? 'BG সরাননি' : 'BG not removed';
+    badge.style.color = 'var(--text-dim)';
+  }
+}
+
+function buildPresets(){
+  const box = $('presetChips');
+  box.innerHTML = '';
+  PRESETS.forEach(p=>{
+    const c = document.createElement('div');
+    c.className = 'chip' + (p.id === state.currentPreset ? ' active' : '');
+    c.dataset.id = p.id;
+    c.innerHTML = `<span>${p.name}</span><span class="dim">${p.w}×${p.h}</span>`;
+    c.onclick = ()=>{
+      document.querySelectorAll('.chip').forEach(el=>el.classList.remove('active'));
+      c.classList.add('active');
+      state.currentPreset = p.id;
+      state.currentSize = { w:p.w, h:p.h };
+      layoutAllCanvases();
+      drawAll();
+    };
+    box.appendChild(c);
+  });
+}
+
+function buildColorGrid(){
+  const grid = $('colorGrid');
+  if(!grid) return;
+  grid.innerHTML = '';
+  BG_COLORS.forEach(hex => {
+    const cell = document.createElement('div');
+    cell.className = 'color-cell' + (state.activeColor === hex ? ' active' : '');
+    cell.style.background = hex;
+    cell.onclick = ()=> selectColor(hex, cell);
+    grid.appendChild(cell);
+  });
+  const custom = document.createElement('div');
+  custom.className = 'color-cell custom';
+  custom.innerHTML = '🎨';
+  const input = document.createElement('input');
+  input.type = 'color';
+  input.value = state.activeColor || '#ffffff';
+  input.oninput = ()=> selectColor(input.value, custom);
+  custom.appendChild(input);
+  grid.appendChild(custom);
+}
+
+async function selectColor(hex, cell){
+  state.activeColor = hex;
+  document.querySelectorAll('.color-cell').forEach(c=>c.classList.remove('active'));
+  if(cell) cell.classList.add('active');
+  if(!state.originalCanvas){ toast(t('msgNoImage'), 'error'); return; }
+  if(!state.bgRemoved){
+    busy(true, t('msgBgRemoving'));
+    const ok = await removeBgWithColor(hex);
+    busy(false);
+    if(!ok) toast(t('msgBgFailed'), 'error');
+    return;
+  }
+  busy(true, t('msgProcessing'));
+  try {
+    const cut = await getCutout(state.originalCanvas);
+    if(!cut) throw new Error('No cutout');
+    state.sourceCanvas = compositeCut(cut, hex);
+    drawAll();
+    updateColorBadge();
+  } catch(e){
+    toast(t('msgError'), 'error');
+  }
+  busy(false);
+}
+
+function layoutOneCanvas(cv){
+  const stage = cv.parentElement;
+  if(!stage || stage.clientWidth === 0) return;
+  const pad = 20;
+  const maxW = Math.max(60, stage.clientWidth  - pad);
+  const maxH = Math.max(60, stage.clientHeight - pad);
+  const ar = state.currentSize.w / state.currentSize.h;
+  let cw = maxW, ch = cw / ar;
+  if(ch > maxH){ ch = maxH; cw = ch * ar; }
+  cv.style.width = cw + 'px';
+  cv.style.height = ch + 'px';
+  const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  cv.width = Math.round(cw * dpr);
+  cv.height = Math.round(ch * dpr);
+}
+function layoutAllCanvases(){
+  [canvas1, canvas2, canvas3, canvas4].forEach(cv => {
+    if(cv.parentElement && cv.parentElement.clientWidth > 0) layoutOneCanvas(cv);
+  });
+}
+function getView(cv){
+  const cw = cv.clientWidth, ch = cv.clientHeight;
+  if(!state.sourceCanvas || cw === 0) return { x:0, y:0, scale:1, cover:1, cw, ch, sw:0, sh:0 };
+  const sw = state.sourceCanvas.width;
+  const sh = state.sourceCanvas.height;
+  const cover = Math.max(cw / sw, ch / sh);
+  const scale = cover * crop.zoom;
+  const x = cw/2 - crop.cx * sw * scale;
+  const y = ch/2 - crop.cy * sh * scale;
+  return { x, y, scale, cover, cw, ch, sw, sh };
+}
+function clampCrop(cv){
+  const v = getView(cv);
+  if(!v.sw) return;
+  crop.zoom = Math.max(1, crop.zoom);
+  const cxMin = v.cw / (2 * v.sw * v.scale);
+  const cxMax = 1 - cxMin;
+  const cyMin = v.ch / (2 * v.sh * v.scale);
+  const cyMax = 1 - cyMin;
+  crop.cx = cxMin >= cxMax ? 0.5 : clamp(crop.cx, cxMin, cxMax);
+  crop.cy = cyMin >= cyMax ? 0.5 : clamp(crop.cy, cyMin, cyMax);
+}
+let compareMode = false;
+function drawCanvas(cv, context, showGuides){
+  if(!cv || !context) return;
+  const v = getView(cv);
+  if(v.cw === 0) return;
+  const dpr = cv.width / v.cw;
+  context.setTransform(dpr, 0, 0, dpr, 0, 0);
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, v.cw, v.ch);
+  if(!state.sourceCanvas) return;
+  const renderSrc = (compareMode && state.step === 4) ? state.originalCanvas : state.sourceCanvas;
+  context.save();
+  if(!compareMode || state.step !== 4){
+    context.filter = `brightness(${state.brightness}%) contrast(${state.contrast}%)`;
+  }
+  context.imageSmoothingQuality = 'high';
+  context.drawImage(renderSrc, v.x, v.y, v.sw * v.scale, v.sh * v.scale);
+  context.restore();
+  if(showGuides){
+    context.strokeStyle = 'rgba(128,128,128,.7)';
+    context.lineWidth = 1;
+    context.setLineDash([4,4]);
+    for(let i=1;i<3;i++){
+      context.beginPath(); context.moveTo(v.cw*i/3,0); context.lineTo(v.cw*i/3,v.ch); context.stroke();
+      context.beginPath(); context.moveTo(0,v.ch*i/3); context.lineTo(v.cw,v.ch*i/3); context.stroke();
+    }
+    context.setLineDash([]);
+    const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#888';
+    context.strokeStyle = textColor;
+    context.lineWidth = 2;
+    context.strokeRect(1, 1, v.cw-2, v.ch-2);
+  }
+  if(compareMode && state.step === 4){
+    context.fillStyle = 'rgba(0,0,0,.65)';
+    context.fillRect(v.cw/2 - 50, 8, 100, 26);
+    context.fillStyle = '#fff';
+    context.font = 'bold 12px -apple-system, sans-serif';
+    context.textAlign = 'center';
+    context.fillText(lang==='bn'?'মূল ছবি':'ORIGINAL', v.cw/2, 25);
+  }
+  if(cv === canvas4 && state.step === 4 && state.brushTool !== 'none' && brush.pos){
+    const rr = state.brushSize / 2;
+    context.save();
+    context.lineWidth = 2; context.strokeStyle = '#ffffff';
+    context.beginPath(); context.arc(brush.pos.px, brush.pos.py, rr, 0, Math.PI*2); context.stroke();
+    context.lineWidth = 1; context.strokeStyle = '#000000';
+    context.beginPath(); context.arc(brush.pos.px, brush.pos.py, Math.max(1, rr - 1.5), 0, Math.PI*2); context.stroke();
+    context.restore();
+  }
+}
+function drawAll(){
+  if(state.step === 1) drawCanvas(canvas1, ctx1, true);
+  if(state.step === 2) drawCanvas(canvas2, ctx2, false);
+  if(state.step === 3) drawCanvas(canvas3, ctx3, false);
+  if(state.step === 4) drawCanvas(canvas4, ctx4, false);
+}
+
+function attachPointers(cv, ctx, isStep1){
+  const pointers = new Map();
+  let dragStart = null, pinchStart = null;
+  cv.addEventListener('pointerdown', e=>{
+    if(!state.sourceCanvas) return;
+    if(cv === canvas4 && state.brushTool !== 'none') return;
+    cv.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x:e.clientX, y:e.clientY });
+    if(isStep1) $('hint1').classList.add('hide');
+    if(pointers.size === 1){
+      const v = getView(cv);
+      dragStart = { px:e.clientX, py:e.clientY, cx:crop.cx, cy:crop.cy, scale: v.scale, sw: v.sw, sh: v.sh };
+      pinchStart = null;
+    } else if(pointers.size === 2){
+      dragStart = null;
+      const p = [...pointers.values()];
+      const rect = cv.getBoundingClientRect();
+      const mx = (p[0].x + p[1].x)/2 - rect.left;
+      const my = (p[0].y + p[1].y)/2 - rect.top;
+      const v = getView(cv);
+      const srcX = (mx - v.x) / v.scale;
+      const srcY = (my - v.y) / v.scale;
+      pinchStart = {
+        dist: Math.hypot(p[0].x-p[1].x, p[0].y-p[1].y) || 1,
+        zoom: crop.zoom, cw: v.cw, ch: v.ch, sw: v.sw, sh: v.sh, cover: v.cover,
+        mx, my, srcX, srcY
+      };
+    }
+  });
+  cv.addEventListener('pointermove', e=>{
+    if(!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x:e.clientX, y:e.clientY });
+    if(pointers.size === 1 && dragStart){
+      const dx = e.clientX - dragStart.px;
+      const dy = e.clientY - dragStart.py;
+      crop.cx = dragStart.cx - dx / (dragStart.sw * dragStart.scale);
+      crop.cy = dragStart.cy - dy / (dragStart.sh * dragStart.scale);
+      clampCrop(cv);
+      drawCanvas(cv, ctx, isStep1);
+    } else if(pointers.size === 2 && pinchStart){
+      const p = [...pointers.values()];
+      const dist = Math.hypot(p[0].x-p[1].x, p[0].y-p[1].y) || 1;
+      const ratio = dist / pinchStart.dist;
+      const newZoom = clamp(pinchStart.zoom * ratio, 1, 5);
+      const newScale = pinchStart.cover * newZoom;
+      crop.zoom = newZoom;
+      crop.cx = (pinchStart.cw/2 - pinchStart.mx + pinchStart.srcX * newScale) / (pinchStart.sw * newScale);
+      crop.cy = (pinchStart.ch/2 - pinchStart.my + pinchStart.srcY * newScale) / (pinchStart.sh * newScale);
+      clampCrop(cv);
+      drawCanvas(cv, ctx, isStep1);
+    }
+  });
+  function end(e){
+    pointers.delete(e.pointerId);
+    if(pointers.size === 0){ dragStart = null; pinchStart = null; }
+    else if(pointers.size === 1){
+      const p = [...pointers.values()][0];
+      const v = getView(cv);
+      dragStart = { px:p.x, py:p.y, cx:crop.cx, cy:crop.cy, scale: v.scale, sw: v.sw, sh: v.sh };
+      pinchStart = null;
+    }
+  }
+  cv.addEventListener('pointerup', end);
+  cv.addEventListener('pointercancel', end);
+}
+
+/* ============ RECENT: full-quality storage (IndexedDB, localStorage fallback) ============ */
+const Recent = (function(){
+  const KEY = 'pp_recent2', MAX_IDB = 30, MAX_LS = 10;
+  let mode = null, db = null;
+  const rawLS = {
+    read(){ try { return JSON.parse(window.localStorage.getItem(KEY) || '[]'); } catch(e){ return []; } },
+    write(a){ try { window.localStorage.setItem(KEY, JSON.stringify(a)); return true; } catch(e){ return false; } }
+  };
+  function scaled(canvas, max, q){
+    const sc = Math.min(1, max / Math.max(canvas.width, canvas.height));
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(canvas.width * sc));
+    c.height = Math.max(1, Math.round(canvas.height * sc));
+    const x = c.getContext('2d');
+    x.imageSmoothingQuality = 'high';
+    x.drawImage(canvas, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', q);
+  }
+  function openIDB(){
+    return new Promise((res, rej)=>{
+      try {
+        if(!window.indexedDB){ rej(new Error('no idb')); return; }
+        const rq = indexedDB.open('pp_recent_v2', 1);
+        rq.onupgradeneeded = ()=>{ rq.result.createObjectStore('items', { keyPath: 'id' }); };
+        rq.onsuccess = ()=> res(rq.result);
+        rq.onerror = ()=> rej(rq.error || new Error('idb error'));
+        rq.onblocked = ()=> rej(new Error('idb blocked'));
+      } catch(e){ rej(e); }
+    });
+  }
+  async function init(){
+    if(mode) return;
+    try { db = await openIDB(); mode = 'idb'; } catch(e){ mode = 'ls'; }
+  }
+  const idbAll = ()=> new Promise((res, rej)=>{
+    const r = db.transaction('items', 'readonly').objectStore('items').getAll();
+    r.onsuccess = ()=> res(r.result || []); r.onerror = ()=> rej(r.error);
+  });
+  const idbGet = id => new Promise((res, rej)=>{
+    const r = db.transaction('items', 'readonly').objectStore('items').get(id);
+    r.onsuccess = ()=> res(r.result ? r.result.full : null); r.onerror = ()=> rej(r.error);
+  });
+  const idbPut = item => new Promise((res, rej)=>{
+    const tx = db.transaction('items', 'readwrite');
+    tx.objectStore('items').put(item);
+    tx.oncomplete = ()=> res(); tx.onerror = ()=> rej(tx.error); tx.onabort = ()=> rej(tx.error);
+  });
+  const idbDel = ids => new Promise((res, rej)=>{
+    const tx = db.transaction('items', 'readwrite');
+    const st = tx.objectStore('items');
+    ids.forEach(id => st.delete(id));
+    tx.oncomplete = ()=> res(); tx.onerror = ()=> rej(tx.error); tx.onabort = ()=> rej(tx.error);
+  });
+  async function list(){
+    await init();
+    if(mode === 'idb'){
+      try {
+        const a = await idbAll();
+        a.sort((x, y)=> y.ts - x.ts);
+        return a.map(x => ({ id: x.id, ts: x.ts, thumb: x.thumb }));
+      } catch(e){ mode = 'ls'; }
+    }
+    return rawLS.read().sort((x, y)=> y.ts - x.ts).map(x => ({ id: x.id, ts: x.ts, thumb: x.thumb }));
+  }
+  async function add(canvas){
+    await init();
+    const ts = Date.now();
+    const id = ts + '-' + Math.random().toString(36).slice(2, 6);
+    const thumb = scaled(canvas, 240, 0.82);
+    if(mode === 'idb'){
+      try {
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.92));
+        await idbPut({ id, ts, thumb, full: blob });
+        const all = (await idbAll()).sort((x, y)=> y.ts - x.ts);
+        if(all.length > MAX_IDB) await idbDel(all.slice(MAX_IDB).map(x => x.id));
+        return;
+      } catch(e){ mode = 'ls'; }
+    }
+    let arr = rawLS.read();
+    arr.unshift({ id, ts, thumb, full: scaled(canvas, 720, 0.85) });
+    arr = arr.slice(0, MAX_LS);
+    while(arr.length && !rawLS.write(arr)) arr.pop();
+  }
+  async function getFull(id){
+    await init();
+    if(mode === 'idb'){
+      try { return await idbGet(id); } catch(e){ mode = 'ls'; }
+    }
+    const it = rawLS.read().find(x => x.id === id);
+    return it ? it.full : null;
+  }
+  async function remove(ids){
+    await init();
+    if(mode === 'idb'){
+      try { await idbDel(ids); return; } catch(e){ mode = 'ls'; }
+    }
+    rawLS.write(rawLS.read().filter(x => ids.indexOf(x.id) < 0));
+  }
+  return { list, add, getFull, remove };
+})();
+
+const recSel = { on: false, ids: new Set() };
+let recentData = [];
+
+function saveRecent(){
+  if(!state.sourceCanvas) return;
+  Recent.add(state.sourceCanvas).then(renderRecent).catch(()=>{});
+}
+async function renderRecent(){
+  try { recentData = await Recent.list(); } catch(e){ recentData = []; }
+  drawRecent();
+}
+function updateRecentUI(){
+  const sb = $('recSelBtn');
+  if(!sb) return;
+  sb.textContent = recSel.on ? t('done') : t('select');
+  $('recAllBtn').style.display = recSel.on ? 'inline-block' : 'none';
+  $('recAllBtn').textContent = t('selectAll');
+  const n = recSel.ids.size;
+  $('recDelBtn').style.display = (recSel.on && n) ? 'inline-block' : 'none';
+  $('recDelBtn').textContent = '🗑 ' + t('deleteSel') + ' (' + n + ')';
+}
+function drawRecent(){
+  const section = $('recentSection');
+  const list = $('recentList');
+  if(!recentData.length){
+    section.style.display = 'none';
+    recSel.on = false; recSel.ids.clear();
+    return;
+  }
+  section.style.display = 'block';
+  list.innerHTML = '';
+  recentData.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'recent-item' + (recSel.ids.has(item.id) ? ' sel' : '');
+    const img = document.createElement('img');
+    img.src = item.thumb; img.alt = '';
+    div.appendChild(img);
+    if(recSel.on){
+      const chk = document.createElement('div');
+      chk.className = 'chk';
+      chk.textContent = recSel.ids.has(item.id) ? '✓' : '';
+      div.appendChild(chk);
+    }
+    let timer = null, longDone = false;
+    const cancel = ()=> clearTimeout(timer);
+    div.addEventListener('pointerdown', ()=>{
+      longDone = false;
+      timer = setTimeout(()=>{
+        longDone = true;
+        recSel.on = true; recSel.ids.add(item.id);
+        if(navigator.vibrate) navigator.vibrate(30);
+        drawRecent();
+      }, 550);
+    });
+    div.addEventListener('pointerup', cancel);
+    div.addEventListener('pointerleave', cancel);
+    div.addEventListener('pointercancel', cancel);
+    div.addEventListener('click', ()=>{
+      if(longDone){ longDone = false; return; }
+      if(recSel.on){
+        if(recSel.ids.has(item.id)) recSel.ids.delete(item.id); else recSel.ids.add(item.id);
+        drawRecent();
+      } else loadRecent(item.id);
+    });
+    list.appendChild(div);
+  });
+  updateRecentUI();
+}
+async function loadRecent(id){
+  busy(true, t('msgLoading'));
+  try {
+    const full = await Recent.getFull(id);
+    if(!full){ busy(false); toast(t('msgError'), 'error'); return; }
+    if(typeof full === 'string') loadFromDataUrl(full);
+    else loadFile(full);
+  } catch(e){ busy(false); toast(t('msgError'), 'error'); }
+}
+
+function loadFile(file){
+  if(!file) return;
+  if(!file.type.startsWith('image/')){ toast(lang==='bn'?'শুধু ছবি':'Only images', 'error'); return; }
+  busy(true, t('msgLoading'));
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = ()=>{
+    URL.revokeObjectURL(url);
+    try { buildSource(img); }
+    catch(err){ busy(false); toast(t('msgError'),'error'); }
+  };
+  img.onerror = ()=>{ URL.revokeObjectURL(url); busy(false); toast(t('msgError'),'error'); };
+  img.src = url;
+}
+function loadFromDataUrl(url){
+  busy(true, t('msgLoading'));
+  const img = new Image();
+  img.onload = ()=> { try { buildSource(img); } catch(e){ busy(false); toast(t('msgError'),'error'); } };
+  img.onerror = ()=>{ busy(false); toast(t('msgError'),'error'); };
+  img.src = url;
+}
+
+function buildSource(img){
+  let w = img.naturalWidth || img.width;
+  let h = img.naturalHeight || img.height;
+  const s = Math.min(1, MAX_SOURCE / Math.max(w, h));
+  w = Math.max(1, Math.round(w*s));
+  h = Math.max(1, Math.round(h*s));
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const cx = c.getContext('2d', { willReadFrequently:true });
+  cx.imageSmoothingQuality = 'high';
+  cx.drawImage(img, 0, 0, w, h);
+  state.originalCanvas = c;
+  state.sourceCanvas = c;
+  state.retouchBase = null; state.retouchTarget = null; state.undoStack = [];
+  state.currentCustId = null;
+  state.bgRemoved = false;
+  state.activeColor = '';
+  state.brightness = 100; state.contrast = 100;
+  crop.cx = 0.5; crop.cy = 0.5; crop.zoom = 1;
+  compareMode = false;
+  $('brightness').value = 100; $('brightnessVal').textContent = '100';
+  $('contrast').value = 100;   $('contrastVal').textContent = '100';
+  $('hint1').classList.remove('hide');
+  hideRestoreUI();
+  const defId = LS.get('pp_default_size') || 'passport';
+  const def = PRESETS.find(p=>p.id === defId) || PRESETS[0];
+  state.currentPreset = def.id;
+  state.currentSize = { w:def.w, h:def.h };
+  document.querySelectorAll('.chip').forEach(c=>{
+    c.classList.toggle('active', c.dataset.id === def.id);
+  });
+  if(state.autoEnhance){
+    state.brightness = 106; state.contrast = 106;
+    $('brightness').value = 106; $('brightnessVal').textContent = '106';
+    $('contrast').value = 106;   $('contrastVal').textContent = '106';
+  }
+  showScreen('wizard');
+  enterEditor();
+  warmEngine();
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      layoutAllCanvases();
+      drawAll();
+      buildColorGrid();
+      busy(false);
+    });
+  });
+}
+
+function showStepUI(step){
+  closeCrop();
+  state.step = step;
+  document.querySelectorAll('.screen').forEach(el=>{
+    if(el.id && el.id.startsWith('step')) el.classList.remove('active');
+  });
+  const s = $('step' + step);
+  if(s) s.classList.add('active');
+  $('stepTitle').textContent = tArr('stepTitles', step-1);
+  updateStepDots();
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      const cv = getCanvasForStep(step);
+      const ctx = getCtxForStep(step);
+      if(cv) layoutOneCanvas(cv);
+      if(cv) drawCanvas(cv, ctx, step === 1);
+      if(step === 5){ renderCustomers(); generatePreview(); }
+      if(step === 2) updateRemoveUI();
+      if(step === 3) updateColorBadge();
+    });
+  });
+}
+function updateRemoveUI(){
+  if(state.bgRemoved) showRestoreUI();
+  else {
+    hideRestoreUI();
+    setAiStatus(engineStatus());
+  }
+}
+function pushStep(step){
+  showStepUI(step);
+  history.pushState({ editor:true, step }, '', location.pathname + location.search + '#s' + step);
+}
+function enterEditor(){
+  history.pushState({ editor:true, step:1 }, '', location.pathname + location.search + '#s1');
+  showStepUI(1);
+}
+function exitEditor(){
+  closeCrop();
+  state.currentCustId = null;
+  state.retouchBase = null; state.retouchTarget = null; state.undoStack = [];
+  showScreen('home');
+  state.originalCanvas = null;
+  state.sourceCanvas = null;
+  state.step = 0;
+  state.bgRemoved = false;
+  state.activeColor = '';
+  compareMode = false;
+  /* free heavy objects so the next photo/camera pick does not run out of memory */
+  cutCache = { ref: null, cut: null, engine: '' };
+  state.pages = [];
+  try { $('previewImg').removeAttribute('src'); } catch(e){}
+}
+window.addEventListener('popstate', (e)=>{
+  const hs = e.state;
+  if(hs && hs.editor && state.sourceCanvas) showStepUI(hs.step);
+  else { if(state.sourceCanvas) exitEditor(); else showScreen('home'); }
+});
+
+function renderPhoto(){
+  const outW = mmToPx(state.currentSize.w);
+  const outH = mmToPx(state.currentSize.h);
+  const out = document.createElement('canvas');
+  out.width = outW; out.height = outH;
+  const o = out.getContext('2d');
+  if(!state.sourceCanvas){
+    o.fillStyle = '#eee'; o.fillRect(0, 0, outW, outH);
+    return out;
+  }
+  o.imageSmoothingQuality = 'high';
+  o.fillStyle = '#fff';
+  o.fillRect(0, 0, outW, outH);
+  const sw = state.sourceCanvas.width;
+  const sh = state.sourceCanvas.height;
+  const coverScale = Math.max(outW / sw, outH / sh);
+  const scale = coverScale * crop.zoom;
+  const dw = sw * scale;
+  const dh = sh * scale;
+  const dx = outW/2 - crop.cx * dw;
+  const dy = outH/2 - crop.cy * dh;
+  o.save();
+  o.filter = `brightness(${state.brightness}%) contrast(${state.contrast}%)`;
+  o.drawImage(state.sourceCanvas, dx, dy, dw, dh);
+  o.restore();
+  
+  // Draw thin black border for print
+  o.strokeStyle = '#000000';
+  o.lineWidth = 2;
+  o.strokeRect(1, 1, outW - 2, outH - 2);
+
+  return out;
+}
+
+const SHEETS = {
+  '4x6': { wmm:152.4, hmm:101.6 },
+  'a5':  { wmm:210, hmm:148 },
+  'a4':  { wmm:210, hmm:297 }
+};
+
+/* Pack every customer's copies (mixed sizes allowed) into one or more sheets */
+function renderSheets(customers, sheetKey, posKey){
+  const sh = SHEETS[sheetKey] || SHEETS['a4'];
+  const sw = mmToPx(sh.wmm), shh = mmToPx(sh.hmm);
+  const gap = Math.round(2 / MM_PER_IN * DPI);
+  const margin = Math.round(4 / MM_PER_IN * DPI);
+  const availW = sw - 2*margin, availH = shh - 2*margin;
+
+  const items = [];
+  customers.forEach(c => {
+    for(let k = 0; k < c.copies; k++) items.push({ photo: c.photo, w: c.photo.width, h: c.photo.height });
+  });
+
+  const pages = [];
+  let rows = [], row = null;
+  const rowsH = rs => rs.reduce((a, r) => a + r.h, 0) + gap * Math.max(0, rs.length - 1);
+  const commit = ()=>{
+    if(!row || !row.items.length) return;
+    if(rows.length && rowsH(rows) + gap + row.h > availH){ pages.push(rows); rows = []; }
+    rows.push(row); row = null;
+  };
+  items.forEach(it => {
+    if(row && row.items.length && row.w + gap + it.w > availW) commit();
+    if(!row) row = { items: [], w: 0, h: 0 };
+    row.w += (row.items.length ? gap : 0) + it.w;
+    row.h = Math.max(row.h, it.h);
+    row.items.push(it);
+  });
+  commit();
+  if(rows.length) pages.push(rows);
+
+  return pages.map(pageRows => {
+    const sheet = document.createElement('canvas');
+    sheet.width = sw; sheet.height = shh;
+    const c = sheet.getContext('2d');
+    c.fillStyle = '#fff'; c.fillRect(0, 0, sw, shh);
+    let y = (posKey === 'center') ? Math.round((shh - rowsH(pageRows)) / 2) : margin;
+    let count = 0;
+    pageRows.forEach(r => {
+      let x = (posKey === 'topleft') ? margin : Math.round((sw - r.w) / 2);
+      r.items.forEach(it => {
+        c.drawImage(it.photo, x, y, it.w, it.h);
+        c.strokeStyle = '#000'; c.lineWidth = 1;
+        c.strokeRect(x + 0.5, y + 0.5, it.w - 1, it.h - 1);
+        x += it.w + gap; count++;
+      });
+      y += r.h + gap;
+    });
+    return { canvas: sheet, count };
+  });
+}
+
+function makeThumb(canvas){
+  const t2 = document.createElement('canvas');
+  const sc = 120 / Math.max(canvas.width, canvas.height);
+  t2.width = Math.max(1, Math.round(canvas.width * sc));
+  t2.height = Math.max(1, Math.round(canvas.height * sc));
+  t2.getContext('2d').drawImage(canvas, 0, 0, t2.width, t2.height);
+  return t2.toDataURL('image/jpeg', 0.8);
+}
+
+function addOrUpdateCustomer(){
+  if(!state.sourceCanvas) return;
+  const photo = renderPhoto();
+  const thumb = makeThumb(photo);
+  if(state.currentCustId){
+    const c = state.customers.find(x => x.id === state.currentCustId);
+    if(c){ c.photo = photo; c.thumb = thumb; c.w = state.currentSize.w; c.h = state.currentSize.h; persistBatch(); return; }
+  }
+  custSeq++;
+  const copies = parseInt(LS.get('pp_default_copies') || '6', 10) || 6;
+  state.customers.push({ id: custSeq, name: '', copies, photo, thumb, w: state.currentSize.w, h: state.currentSize.h });
+  state.currentCustId = custSeq;
+  saveRecent();
+  persistBatch();
+}
+
+function custLabel(c, i){ return (c.name && c.name.trim()) || (t('custDefault') + ' ' + (i + 1)); }
+
+let previewTimer = null;
+function schedulePreview(){
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(()=> generatePreview(true), 250);
+  persistSoon();
+}
+
+function renderCustomers(){
+  const box = $('custList');
+  box.innerHTML = '';
+  state.customers.forEach((c, i)=>{
+    const row = document.createElement('div');
+    row.className = 'cust-row';
+
+    const img = document.createElement('img');
+    img.src = c.thumb; img.alt = '';
+    row.appendChild(img);
+
+    const mid = document.createElement('div');
+    mid.className = 'cust-mid';
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.className = 'cname'; inp.maxLength = 30;
+    inp.placeholder = t('custDefault') + ' ' + (i + 1);
+    inp.value = c.name || '';
+    inp.oninput = ()=>{ c.name = inp.value; persistSoon(); };
+    const sz = document.createElement('div');
+    sz.className = 'csz';
+    sz.textContent = Math.round(c.w) + '×' + Math.round(c.h) + ' mm';
+    mid.appendChild(inp); mid.appendChild(sz);
+    row.appendChild(mid);
+
+    const st = document.createElement('div');
+    st.className = 'stepper';
+    const minus = document.createElement('button'); minus.textContent = '−';
+    const num = document.createElement('span'); num.textContent = c.copies;
+    const plus = document.createElement('button'); plus.textContent = '+';
+    minus.onclick = ()=>{ c.copies = clamp(c.copies - 1, 1, 48); num.textContent = c.copies; schedulePreview(); };
+    plus.onclick  = ()=>{ c.copies = clamp(c.copies + 1, 1, 48); num.textContent = c.copies; schedulePreview(); };
+    st.appendChild(minus); st.appendChild(num); st.appendChild(plus);
+    row.appendChild(st);
+
+    const del = document.createElement('button');
+    del.className = 'cust-del'; del.textContent = '✕';
+    del.onclick = ()=>{
+      state.customers = state.customers.filter(x => x.id !== c.id);
+      if(state.currentCustId === c.id) state.currentCustId = null;
+      renderCustomers();
+      generatePreview(true);
+      persistBatch();
+    };
+    row.appendChild(del);
+    box.appendChild(row);
+  });
+}
+
+function showPage(i){
+  if(!state.pages.length){
+    $('previewImg').removeAttribute('src');
+    $('pageNav').style.display = 'none';
+    return;
+  }
+  state.pageIdx = clamp(i, 0, state.pages.length - 1);
+  $('previewImg').src = state.pages[state.pageIdx];
+  $('pageNav').style.display = state.pages.length > 1 ? 'flex' : 'none';
+  $('pageLbl').textContent = (state.pageIdx + 1) + ' / ' + state.pages.length;
+}
+
+function generatePreview(silent){
+  if(silent !== true) busy(true, t('msgProcessing'));
+  setTimeout(()=>{
+    try {
+      const sheetKey = $('sheetSize').value;
+      if(!state.customers.length){
+        state.pages = [];
+        showPage(0);
+        $('previewInfo').textContent = t('emptyBatch');
+      } else {
+        const sheets = renderSheets(state.customers, sheetKey, $('posSel').value);
+        state.pages = sheets.map(sh => {
+          const sc = Math.min(1, 800 / sh.canvas.width);
+          const pC = document.createElement('canvas');
+          pC.width = Math.round(sh.canvas.width * sc);
+          pC.height = Math.round(sh.canvas.height * sc);
+          const pc = pC.getContext('2d');
+          pc.fillStyle = '#f5f5f5'; pc.fillRect(0, 0, pC.width, pC.height);
+          pc.drawImage(sh.canvas, 0, 0, pC.width, pC.height);
+          const du = pC.toDataURL('image/jpeg', 0.9);
+          pC.width = pC.height = 0; sh.canvas.width = sh.canvas.height = 0;
+          return du;
+        });
+        showPage(Math.min(state.pageIdx, state.pages.length - 1));
+        const total = state.customers.reduce((a, c) => a + c.copies, 0);
+        const sheetLabel = sheetKey === '4x6' ? '4×6' : sheetKey.toUpperCase();
+        $('previewInfo').textContent = state.customers.length + ' ' + t('customersWord') + ' · ' + total + ' ' + t('photosWord') + ' · ' + sheetLabel + (sheets.length > 1 ? ' · ' + sheets.length + ' ' + t('pageWord') : '');
+      }
+    } catch(err){ console.warn(err); toast(t('msgError'), 'error'); }
+    if(silent !== true) busy(false);
+  }, 40);
+}
+
+function updateBatchBar(){
+  const bar = $('batchBar');
+  if(!bar) return;
+  const n = state.customers.length;
+  if(!n){ bar.style.display = 'none'; return; }
+  const total = state.customers.reduce((a, c) => a + c.copies, 0);
+  bar.style.display = 'flex';
+  $('batchBarText').textContent = '📋 ' + t('openBatch') + ' · ' + n + ' ' + t('customersWord') + ' · ' + total + ' ' + t('photosWord');
+}
+
+function autoEnhance(){
+  if(!state.sourceCanvas) return;
+  const sample = document.createElement('canvas');
+  sample.width = 100; sample.height = 100;
+  const sc = sample.getContext('2d');
+  sc.drawImage(state.sourceCanvas, 0, 0, state.sourceCanvas.width, state.sourceCanvas.height, 0, 0, 100, 100);
+  const data = sc.getImageData(0, 0, 100, 100).data;
+  let sum = 0, sumSq = 0, n = 0;
+  for(let i = 0; i < data.length; i += 4){
+    const lum = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
+    sum += lum; sumSq += lum*lum; n++;
+  }
+  const mean = sum/n;
+  const std = Math.sqrt(Math.max(0.01, sumSq/n - mean*mean));
+  const nb = clamp(Math.round(100 * 128 / Math.max(1, mean)), 80, 130);
+  const nc = clamp(Math.round(100 * 60 / Math.max(1, std)), 90, 140);
+  state.brightness = nb; state.contrast = nc;
+  $('brightness').value = nb; $('brightnessVal').textContent = nb;
+  $('contrast').value = nc; $('contrastVal').textContent = nc;
+  drawAll();
+  toast(t('msgEnhanced'), 'success');
+}
+function centerFace(){
+  if(!state.sourceCanvas) return;
+  const w = state.sourceCanvas.width, h = state.sourceCanvas.height;
+  const data = state.originalCanvas.getContext('2d', { willReadFrequently:true })
+    .getImageData(0, 0, w, h).data;
+  let sumX = 0, sumY = 0, count = 0;
+  for(let y = 0; y < h; y += 4){
+    for(let x = 0; x < w; x += 4){
+      const i = (y*w + x) * 4;
+      const r = data[i], g = data[i+1], b = data[i+2];
+      const cb = 128 - 0.168736*r - 0.331264*g + 0.5*b;
+      const cr = 128 + 0.5*r - 0.418688*g - 0.081312*b;
+      if(cb >= 77 && cb <= 127 && cr >= 133 && cr <= 173 && r > 60){
+        sumX += x; sumY += y; count++;
+      }
+    }
+  }
+  if(count > 200){
+    crop.cx = (sumX/count) / w;
+    crop.cy = (sumY/count) / h;
+    crop.zoom = Math.max(crop.zoom, 1.1);
+    toast(t('msgFaceCentered'), 'success');
+  } else {
+    crop.cx = 0.5; crop.cy = 0.4;
+    crop.zoom = Math.max(crop.zoom, 1.1);
+    toast(t('msgFaceFallback'));
+  }
+  const cv = getCanvasForStep(state.step);
+  if(cv) clampCrop(cv);
+  drawAll();
+}
+
+function rotateCanvas90(srcCanvas){
+  const c = document.createElement('canvas');
+  c.width = srcCanvas.height;
+  c.height = srcCanvas.width;
+  const cx = c.getContext('2d');
+  cx.translate(c.width/2, c.height/2);
+  cx.rotate(Math.PI/2);
+  cx.drawImage(srcCanvas, -srcCanvas.width/2, -srcCanvas.height/2);
+  return c;
+}
+function flipCanvasH(srcCanvas){
+  const c = document.createElement('canvas');
+  c.width = srcCanvas.width;
+  c.height = srcCanvas.height;
+  const cx = c.getContext('2d');
+  cx.translate(srcCanvas.width, 0);
+  cx.scale(-1, 1);
+  cx.drawImage(srcCanvas, 0, 0);
+  return c;
+}
+
+function dateStamp(){
+  const d = new Date();
+  const p = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+}
+function safeName(name){
+  const base = (name||'').trim().replace(/[^\w\u0980-\u09FF\- ]+/g,'').replace(/\s+/g,'_');
+  return base || 'photo';
+}
+function triggerDownload(canvasEl, filename, cb){
+  canvasEl.toBlob(blob=>{
+    if(!blob){ if(cb) cb(false); return; }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+    if(cb) cb(true);
+  }, 'image/jpeg', 0.95);
+}
+
+$('fileGallery').onchange = e=>{ loadFile(e.target.files[0]); e.target.value=''; };
+$('fileCamera').onchange  = e=>{ loadFile(e.target.files[0]); e.target.value=''; };
+$('backBtn').onclick = ()=>{ history.back(); };
+$('next1').onclick = ()=> pushStep(2);
+$('next2').onclick = ()=> pushStep(3);
+$('next3').onclick = ()=> pushStep(4);
+$('next4').onclick = ()=>{ addOrUpdateCustomer(); pushStep(5); };
+
+document.querySelectorAll('.step-dot').forEach(d=>{
+  d.onclick = ()=>{
+    const n = +d.dataset.step;
+    if(n === state.step) return;
+    if(n < state.step) showStepUI(n);
+    else { if(n >= 5) addOrUpdateCustomer(); pushStep(n); }
+  };
+});
+
+$('themeQuick').onclick = ()=>{
+  const current = LS.get('pp_theme') || 'auto';
+  const idx = THEME_CYCLE.indexOf(current);
+  const next = THEME_CYCLE[(idx + 1) % THEME_CYCLE.length];
+  LS.set('pp_theme', next);
+  applyTheme(next);
+  drawAll();
+  const label = next === 'auto' ? 'AUTO' : next.toUpperCase();
+  toast(`🎨 ${label}`, 'success', 1500);
+};
+
+$('rotateBtn').onclick = ()=>{
+  if(!state.originalCanvas) return;
+  state.originalCanvas = rotateCanvas90(state.originalCanvas);
+  state.sourceCanvas = state.originalCanvas;
+  state.bgRemoved = false;
+  state.activeColor = '';
+  maskCache = { ref: null, mask: null };
+  maskPromise = null;
+  hideRestoreUI();
+  crop.cx = 0.5; crop.cy = 0.5; crop.zoom = 1;
+  layoutAllCanvases();
+  drawAll();
+  buildColorGrid();
+};
+$('flipBtn').onclick = ()=>{
+  if(!state.originalCanvas) return;
+  state.originalCanvas = flipCanvasH(state.originalCanvas);
+  state.sourceCanvas = state.originalCanvas;
+  state.bgRemoved = false;
+  state.activeColor = '';
+  maskCache = { ref: null, mask: null };
+  maskPromise = null;
+  hideRestoreUI();
+  layoutAllCanvases();
+  drawAll();
+  buildColorGrid();
+};
+
+$('compareBtn').onclick = function(){
+  compareMode = !compareMode;
+  this.classList.toggle('on', compareMode);
+  drawAll();
+};
+
+$('settingsBtn').onclick = ()=> $('settingsModal').classList.add('show');
+$('closeSettings').onclick = ()=> $('settingsModal').classList.remove('show');
+$('settingsModal').onclick = e=>{
+  if(e.target === $('settingsModal')) $('settingsModal').classList.remove('show');
+};
+document.querySelectorAll('.theme-btn').forEach(b=>{
+  b.onclick = ()=>{
+    LS.set('pp_theme', b.dataset.theme);
+    applyTheme(b.dataset.theme);
+    drawAll();
+    const label = b.dataset.theme === 'auto' ? 'AUTO' : b.dataset.theme.toUpperCase();
+    toast(`🎨 ${label}`, 'success', 1500);
+  };
+});
+document.querySelectorAll('.lang-btn').forEach(b=>{
+  b.onclick = ()=>{
+    lang = b.dataset.lang;
+    LS.set('pp_lang', lang);
+    applyLang();
+    drawAll();
+  };
+});
+$('defaultSizeSel').onchange = e=> LS.set('pp_default_size', e.target.value);
+$('defaultColorSel').onchange = e=> LS.set('pp_default_color', e.target.value);
+$('defaultSheetSel').onchange = e=> LS.set('pp_default_sheet', e.target.value);
+$('defaultCopiesSel').onchange = e=> LS.set('pp_default_copies', e.target.value);
+$('autoEnhanceSwitch').onclick = function(){
+  this.classList.toggle('on');
+  state.autoEnhance = this.classList.contains('on');
+  LS.set('pp_auto_enhance', state.autoEnhance ? '1' : '0');
+};
+$('bgEngineSel').onchange = e=>{
+  state.bgEngine = e.target.value;
+  LS.set('pp_bg_engine', state.bgEngine);
+  aiFailed = false; imglyFailed = false; warmEngine();
+};
+$('resetAppBtn').onclick = ()=>{
+  if(confirm(lang==='bn'?'সব রিসেট?':'Reset everything?')){
+    LS.clear();
+    lang = 'en'; state.autoEnhance = true; state.bgEngine = 'best'; aiFailed = false; imglyFailed = false;
+    applyLang(); applyTheme('auto');
+    $('autoEnhanceSwitch').classList.add('on');
+    $('bgEngineSel').value = 'best';
+    $('defaultSizeSel').value = 'passport';
+    $('defaultColorSel').value = '#ffffff';
+    $('defaultSheetSel').value = 'a4';
+    $('defaultCopiesSel').value = '6';
+    $('settingsModal').classList.remove('show');
+    toast(t('msgResetDone'), 'success');
+    renderRecent();
+  }
+};
+
+$('aiRetryBtn').onclick = async ()=>{
+  aiFailed = false; imglyFailed = false;
+  aiInitPromise = null;
+  setAiStatus('loading');
+  await warmEngine();
+};
+
+$('removeBgBtn').onclick = async ()=>{
+  if(!state.originalCanvas) return toast(t('msgNoImage'), 'error');
+  const defColor = LS.get('pp_default_color') || '#ffffff';
+  busy(true, t('msgBgRemoving'));
+  const ok = await removeBgWithColor(defColor);
+  busy(false);
+  if(!ok) toast(t('msgBgFailed'), 'error');
+};
+$('restoreBgBtn').onclick = ()=>{
+  if(!state.originalCanvas) return;
+  state.sourceCanvas = state.originalCanvas;
+  state.bgRemoved = false;
+  state.activeColor = '';
+  maskCache = { ref: null, mask: null };
+  maskPromise = null;
+  hideRestoreUI();
+  drawAll();
+  buildColorGrid();
+  toast(t('msgBgRestored'));
+};
+
+$('brightness').oninput = e=>{
+  state.brightness = +e.target.value;
+  $('brightnessVal').textContent = state.brightness;
+  drawAll();
+};
+$('contrast').oninput = e=>{
+  state.contrast = +e.target.value;
+  $('contrastVal').textContent = state.contrast;
+  drawAll();
+};
+$('autoEnhanceBtn').onclick = autoEnhance;
+$('centerFaceBtn').onclick = centerFace;
+$('resetAllBtn').onclick = ()=>{
+  if(!state.sourceCanvas) return;
+  // undo face-brush edits only (background, colour and crop stay as they are)
+  if(state.retouchBase && state.retouchTarget === state.sourceCanvas){
+    state.sourceCanvas = state.retouchBase;
+  }
+  state.retouchBase = null; state.retouchTarget = null; state.undoStack = [];
+  state.brightness = 100; state.contrast = 100;
+  compareMode = false;
+  $('compareBtn').classList.remove('on');
+  $('brightness').value = 100; $('brightnessVal').textContent = '100';
+  $('contrast').value = 100;   $('contrastVal').textContent = '100';
+  drawAll();
+  toast(t('msgResetDone'), 'success');
+};
+
+$('sheetSize').onchange = ()=> generatePreview(true);
+$('posSel').onchange = ()=>{ LS.set('pp_position', $('posSel').value); generatePreview(true); };
+
+function batchFileBase(){
+  const stamp = dateStamp();
+  let who;
+  if(state.customers.length === 1) who = safeName(state.customers[0].name || '');
+  else who = state.customers.length + 'customers';
+  return { who, stamp };
+}
+
+$('downloadBtn').onclick = ()=>{
+  if(!state.customers.length) return toast(t('emptyBatch'), 'error');
+  busy(true, t('msgProcessing'));
+  setTimeout(()=>{
+    try {
+      const sheetKey = $('sheetSize').value;
+      const sheets = renderSheets(state.customers, sheetKey, $('posSel').value);
+      const { who, stamp } = batchFileBase();
+      let i = 0;
+      const next = ()=>{
+        if(i >= sheets.length){
+          busy(false); showSuccess();
+          toast('✓ ' + t('msgSaved'), 'success', 2400);
+          return;
+        }
+        const idx = i++;
+        const nm = `${who}_${sheetKey}_sheet${idx+1}of${sheets.length}_${sheets[idx].count}pcs_${stamp}.jpg`;
+        triggerDownload(sheets[idx].canvas, nm, ()=> setTimeout(next, 450));
+      };
+      next();
+    } catch(e){
+      console.warn(e);
+      toast(t('msgError'), 'error');
+      busy(false);
+    }
+  }, 50);
+};
+
+$('printBtn').onclick = ()=>{
+  if(!state.customers.length) return toast(t('emptyBatch'), 'error');
+  busy(true, t('msgProcessing'));
+  setTimeout(()=>{
+    try {
+      const sheetKey = $('sheetSize').value;
+      const sheets = renderSheets(state.customers, sheetKey, $('posSel').value);
+      const area = $('printArea');
+      area.innerHTML = '';
+      let loaded = 0;
+      sheets.forEach(sh => {
+        const img = new Image();
+        img.onload = ()=>{
+          loaded++;
+          if(loaded === sheets.length){
+            setTimeout(()=>{ window.print(); busy(false); }, 300);
+          }
+        };
+        img.src = sh.canvas.toDataURL('image/jpeg', 0.95);
+        area.appendChild(img);
+      });
+    } catch(e){
+      console.warn(e);
+      toast(t('msgError'), 'error');
+      busy(false);
+    }
+  }, 50);
+};
+
+$('prevPage').onclick = ()=> showPage(state.pageIdx - 1);
+$('nextPage').onclick = ()=> showPage(state.pageIdx + 1);
+
+$('addCustBtn').onclick = ()=>{
+  state.currentCustId = null;
+  exitEditor();
+};
+$('openBatchBtn').onclick = ()=>{
+  if(!state.customers.length) return;
+  showScreen('wizard');
+  pushStep(5);
+};
+$('clearBatchBtn').onclick = ()=>{
+  if(confirm(t('clearAsk'))){
+    state.customers = [];
+    state.currentCustId = null;
+    updateBatchBar();
+    persistBatch();
+  }
+};
+
+/* ============ RETOUCH BRUSH (Clean / Lighten / Darken) ============ */
+function cloneCanvas(c){
+  const n = document.createElement('canvas');
+  n.width = c.width; n.height = c.height;
+  n.getContext('2d', { willReadFrequently: true }).drawImage(c, 0, 0);
+  return n;
+}
+// first stroke works on a private copy so the original photo is never touched
+function prepareRetouch(){
+  if(state.retouchTarget && state.retouchTarget === state.sourceCanvas) return;
+  state.retouchBase = state.sourceCanvas;
+  const c = cloneCanvas(state.sourceCanvas);
+  state.sourceCanvas = c;
+  state.retouchTarget = c;
+  state.undoStack = [];
+}
+function srcPoint(e){
+  const r = canvas4.getBoundingClientRect();
+  const v = getView(canvas4);
+  const px = e.clientX - r.left - canvas4.clientLeft;
+  const py = e.clientY - r.top - canvas4.clientTop;
+  return { x: (px - v.x) / v.scale, y: (py - v.y) / v.scale, px, py, scale: v.scale };
+}
+function dab(x, y, rad){
+  const sc = state.sourceCanvas;
+  const x0 = Math.max(0, Math.floor(x - rad)), y0 = Math.max(0, Math.floor(y - rad));
+  const x1 = Math.min(sc.width, Math.ceil(x + rad)), y1 = Math.min(sc.height, Math.ceil(y + rad));
+  const w = x1 - x0, h = y1 - y0;
+  if(w <= 0 || h <= 0) return;
+  const ctx = sc.getContext('2d', { willReadFrequently: true });
+  const img = ctx.getImageData(x0, y0, w, h);
+  const d = img.data;
+  const tool = state.brushTool;
+  const bd = (tool === 'smooth' && brush.blurCtx) ? brush.blurCtx.getImageData(x0, y0, w, h).data : null;
+  const str = state.brushStr / 100;
+  for(let py = 0; py < h; py++){
+    for(let px = 0; px < w; px++){
+      const dx = x0 + px + 0.5 - x, dy = y0 + py + 0.5 - y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if(dist >= rad) continue;
+      const tt = 1 - dist / rad;
+      const f = tt * tt * (3 - 2 * tt);
+      const i = (py * w + px) * 4;
+      if(tool === 'smooth' && bd){
+        const k = f * str * 0.5;
+        d[i]   += (bd[i]   - d[i])   * k;
+        d[i+1] += (bd[i+1] - d[i+1]) * k;
+        d[i+2] += (bd[i+2] - d[i+2]) * k;
+      } else if(tool === 'light'){
+        const k = f * str * 0.12;
+        d[i]   += (255 - d[i])   * k;
+        d[i+1] += (255 - d[i+1]) * k;
+        d[i+2] += (255 - d[i+2]) * k;
+      } else if(tool === 'dark'){
+        const k = f * str * 0.12;
+        d[i] *= (1 - k); d[i+1] *= (1 - k); d[i+2] *= (1 - k);
+      }
+    }
+  }
+  ctx.putImageData(img, x0, y0);
+  const b = brush.bbox;
+  if(!b) brush.bbox = { x0, y0, x1, y1 };
+  else { b.x0 = Math.min(b.x0, x0); b.y0 = Math.min(b.y0, y0); b.x1 = Math.max(b.x1, x1); b.y1 = Math.max(b.y1, y1); }
+}
+function brushStroke(p){
+  const rad = Math.max(1.5, state.brushSize / 2 / p.scale);
+  if(!brush.last){
+    dab(p.x, p.y, rad);
+    brush.last = { x: p.x, y: p.y };
+    return;
+  }
+  const dx = p.x - brush.last.x, dy = p.y - brush.last.y;
+  const dist = Math.hypot(dx, dy);
+  const step = Math.max(1, rad * 0.25);
+  const n = Math.floor(dist / step);
+  if(n < 1) return;
+  for(let i = 1; i <= n; i++){
+    const tt = (i * step) / dist;
+    dab(brush.last.x + dx * tt, brush.last.y + dy * tt, rad);
+  }
+  const tl = (n * step) / dist;
+  brush.last = { x: brush.last.x + dx * tl, y: brush.last.y + dy * tl };
+}
+function scheduleBrushDraw(){
+  if(brush.raf) return;
+  brush.raf = requestAnimationFrame(()=>{ brush.raf = 0; drawAll(); });
+}
+canvas4.addEventListener('pointerdown', e=>{
+  if(state.brushTool === 'none' || !state.sourceCanvas || brush.active) return;
+  e.preventDefault();
+  prepareRetouch();
+  const p = srcPoint(e);
+  brush.backup = cloneCanvas(state.sourceCanvas);
+  brush.blur = null; brush.blurCtx = null;
+  if(state.brushTool === 'smooth'){
+    const rad = Math.max(1.5, state.brushSize / 2 / p.scale);
+    const bl = document.createElement('canvas');
+    bl.width = state.sourceCanvas.width; bl.height = state.sourceCanvas.height;
+    const bx = bl.getContext('2d', { willReadFrequently: true });
+    bx.filter = 'blur(' + Math.max(1.5, rad * 0.35) + 'px)';
+    bx.drawImage(state.sourceCanvas, 0, 0);
+    brush.blur = bl; brush.blurCtx = bx;
+  }
+  brush.active = true; brush.pid = e.pointerId; brush.bbox = null; brush.last = null;
+  try { canvas4.setPointerCapture(e.pointerId); } catch(_){}
+  brush.pos = { px: p.px, py: p.py };
+  brushStroke(p);
+  scheduleBrushDraw();
+});
+canvas4.addEventListener('pointermove', e=>{
+  if(state.brushTool === 'none') return;
+  if(!brush.active || e.pointerId !== brush.pid) return;
+  const p = srcPoint(e);
+  brush.pos = { px: p.px, py: p.py };
+  brushStroke(p);
+  scheduleBrushDraw();
+});
+function endStroke(e){
+  if(!brush.active || e.pointerId !== brush.pid) return;
+  brush.active = false;
+  if(brush.bbox && brush.backup){
+    const b = brush.bbox;
+    const data = brush.backup.getContext('2d', { willReadFrequently: true }).getImageData(b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0);
+    state.undoStack.push({ x: b.x0, y: b.y0, data });
+    if(state.undoStack.length > 15) state.undoStack.shift();
+  }
+  brush.backup = null; brush.blur = null; brush.blurCtx = null; brush.pos = null;
+  drawAll();
+}
+canvas4.addEventListener('pointerup', endStroke);
+canvas4.addEventListener('pointercancel', endStroke);
+
+document.querySelectorAll('#toolRow .tool-chip').forEach(b=>{
+  b.onclick = ()=>{
+    state.brushTool = b.dataset.tool;
+    document.querySelectorAll('#toolRow .tool-chip').forEach(x => x.classList.toggle('active', x === b));
+    canvas4.style.cursor = state.brushTool === 'none' ? '' : 'crosshair';
+    brush.pos = null;
+    drawAll();
+  };
+});
+$('brushSize').oninput = e=>{ state.brushSize = +e.target.value; $('brushSizeVal').textContent = state.brushSize; };
+$('brushStr').oninput  = e=>{ state.brushStr  = +e.target.value; $('brushStrVal').textContent  = state.brushStr; };
+$('undoBrushBtn').onclick = ()=>{
+  if(!state.undoStack.length || state.retouchTarget !== state.sourceCanvas) return;
+  const u = state.undoStack.pop();
+  state.sourceCanvas.getContext('2d', { willReadFrequently: true }).putImageData(u.data, u.x, u.y);
+  drawAll();
+};
+
+/* ============ CROP TOOL (step 1) ============ */
+const cropCanvas = $('cropCanvas'), cropCtx = cropCanvas.getContext('2d');
+const cropUI = { rect: null, lock: false, drag: null, v: null };
+
+function cropVisible(){ return $('cropOverlay').style.display !== 'none'; }
+function cropLayout(){
+  const cw = cropCanvas.clientWidth, ch = cropCanvas.clientHeight;
+  if(!cw || !ch || !state.originalCanvas) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  cropCanvas.width = Math.round(cw * dpr);
+  cropCanvas.height = Math.round(ch * dpr);
+  const iw = state.originalCanvas.width, ih = state.originalCanvas.height;
+  const pad = 16;
+  const sc = Math.min((cw - 2*pad) / iw, (ch - 2*pad) / ih);
+  cropUI.v = { s: sc, ox: (cw - iw*sc) / 2, oy: (ch - ih*sc) / 2, cw, ch, dpr };
+}
+function cropHandles(){
+  const v = cropUI.v, r = cropUI.rect;
+  const x0 = v.ox + r.x * v.s, y0 = v.oy + r.y * v.s;
+  const x1 = x0 + r.w * v.s, y1 = y0 + r.h * v.s;
+  const xm = (x0 + x1) / 2, ym = (y0 + y1) / 2;
+  return [
+    { k:'tl', x:x0, y:y0, sx:-1, sy:-1 }, { k:'tr', x:x1, y:y0, sx:1, sy:-1 },
+    { k:'bl', x:x0, y:y1, sx:-1, sy:1 },  { k:'br', x:x1, y:y1, sx:1, sy:1 },
+    { k:'t', x:xm, y:y0, edge:true }, { k:'b', x:xm, y:y1, edge:true },
+    { k:'l', x:x0, y:ym, edge:true }, { k:'r', x:x1, y:ym, edge:true }
+  ];
+}
+function cropDraw(){
+  const v = cropUI.v, r = cropUI.rect, o = state.originalCanvas;
+  if(!v || !r || !o) return;
+  const c = cropCtx, iw = o.width, ih = o.height;
+  c.setTransform(v.dpr, 0, 0, v.dpr, 0, 0);
+  c.clearRect(0, 0, v.cw, v.ch);
+  c.imageSmoothingQuality = 'high';
+  c.drawImage(o, v.ox, v.oy, iw * v.s, ih * v.s);
+  const rx = v.ox + r.x * v.s, ry = v.oy + r.y * v.s, rw = r.w * v.s, rh = r.h * v.s;
+  c.fillStyle = 'rgba(0,0,0,.55)';
+  c.fillRect(v.ox, v.oy, iw * v.s, ry - v.oy);
+  c.fillRect(v.ox, ry + rh, iw * v.s, v.oy + ih * v.s - ry - rh);
+  c.fillRect(v.ox, ry, rx - v.ox, rh);
+  c.fillRect(rx + rw, ry, v.ox + iw * v.s - rx - rw, rh);
+  c.strokeStyle = '#fff'; c.lineWidth = 2; c.strokeRect(rx, ry, rw, rh);
+  c.lineWidth = 1; c.strokeStyle = 'rgba(255,255,255,.45)';
+  for(let i = 1; i < 3; i++){
+    c.beginPath(); c.moveTo(rx + rw*i/3, ry); c.lineTo(rx + rw*i/3, ry + rh); c.stroke();
+    c.beginPath(); c.moveTo(rx, ry + rh*i/3); c.lineTo(rx + rw, ry + rh*i/3); c.stroke();
+  }
+  c.fillStyle = '#fff'; c.strokeStyle = '#000'; c.lineWidth = 1;
+  cropHandles().forEach(h=>{
+    if(cropUI.lock && h.edge) return;
+    c.beginPath(); c.arc(h.x, h.y, h.edge ? 6 : 10, 0, Math.PI*2); c.fill(); c.stroke();
+  });
+}
+function openCrop(){
+  if(!state.originalCanvas) return toast(t('msgNoImage'), 'error');
+  $('cropOverlay').style.display = 'flex';
+  cropUI.lock = false;
+  $('cropRatio').textContent = t('cropFree');
+  requestAnimationFrame(()=>{
+    cropLayout();
+    cropUI.rect = { x: 0, y: 0, w: state.originalCanvas.width, h: state.originalCanvas.height };
+    cropDraw();
+  });
+}
+function closeCrop(){
+  const o = $('cropOverlay');
+  if(o) o.style.display = 'none';
+  cropUI.drag = null;
+}
+function cropPt(e){
+  const r = cropCanvas.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+function cropCompute(d, dx, dy){
+  const o = state.originalCanvas, iw = o.width, ih = o.height, r0 = d.r0, MIN = 30;
+  if(d.type === 'move'){
+    return { x: clamp(r0.x + dx, 0, iw - r0.w), y: clamp(r0.y + dy, 0, ih - r0.h), w: r0.w, h: r0.h };
+  }
+  if(cropUI.lock){
+    const A = state.currentSize.w / state.currentSize.h;
+    const sx = d.sx, sy = d.sy;
+    const ax = sx > 0 ? r0.x : r0.x + r0.w;
+    const ay = sy > 0 ? r0.y : r0.y + r0.h;
+    const maxW = Math.min(sx > 0 ? iw - ax : ax, (sy > 0 ? ih - ay : ay) * A);
+    const w = clamp(r0.w + sx * dx, MIN, Math.max(MIN, maxW));
+    const h = w / A;
+    return { x: sx > 0 ? ax : ax - w, y: sy > 0 ? ay : ay - h, w, h };
+  }
+  let L = r0.x, T = r0.y, R = r0.x + r0.w, B = r0.y + r0.h;
+  const k = d.type;
+  if(k.indexOf('l') >= 0) L = clamp(L + dx, 0, R - MIN);
+  if(k.indexOf('r') >= 0) R = clamp(R + dx, L + MIN, iw);
+  if(k.indexOf('t') >= 0) T = clamp(T + dy, 0, B - MIN);
+  if(k.indexOf('b') >= 0) B = clamp(B + dy, T + MIN, ih);
+  return { x: L, y: T, w: R - L, h: B - T };
+}
+cropCanvas.addEventListener('pointerdown', e=>{
+  if(!cropUI.rect || !cropUI.v) return;
+  const p = cropPt(e);
+  let hit = null, best = 28;
+  cropHandles().forEach(h=>{
+    if(cropUI.lock && h.edge) return;
+    const dd = Math.hypot(h.x - p.x, h.y - p.y);
+    if(dd < best){ best = dd; hit = h; }
+  });
+  const r = cropUI.rect, v = cropUI.v;
+  let type = null;
+  if(hit) type = hit.k;
+  else {
+    const ix = (p.x - v.ox) / v.s, iy = (p.y - v.oy) / v.s;
+    if(ix >= r.x && ix <= r.x + r.w && iy >= r.y && iy <= r.y + r.h) type = 'move';
+  }
+  if(!type) return;
+  cropUI.drag = { type, px: p.x, py: p.y, r0: { x: r.x, y: r.y, w: r.w, h: r.h }, sx: hit ? hit.sx : 0, sy: hit ? hit.sy : 0, pid: e.pointerId };
+  try { cropCanvas.setPointerCapture(e.pointerId); } catch(_){}
+});
+cropCanvas.addEventListener('pointermove', e=>{
+  const d = cropUI.drag;
+  if(!d || e.pointerId !== d.pid) return;
+  const p = cropPt(e), v = cropUI.v;
+  cropUI.rect = cropCompute(d, (p.x - d.px) / v.s, (p.y - d.py) / v.s);
+  cropDraw();
+});
+cropCanvas.addEventListener('pointerup', ()=>{ cropUI.drag = null; });
+cropCanvas.addEventListener('pointercancel', ()=>{ cropUI.drag = null; });
+
+$('cropBtn').onclick = openCrop;
+$('cropCancel').onclick = closeCrop;
+$('cropRatio').onclick = ()=>{
+  const o = state.originalCanvas;
+  if(!o || !cropUI.rect) return;
+  cropUI.lock = !cropUI.lock;
+  if(cropUI.lock){
+    const A = state.currentSize.w / state.currentSize.h;
+    const r = cropUI.rect;
+    const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+    const w = Math.min(r.w, r.h * A), h = w / A;
+    cropUI.rect = { x: clamp(cx - w/2, 0, o.width - w), y: clamp(cy - h/2, 0, o.height - h), w, h };
+    $('cropRatio').textContent = '🔒 ' + state.currentSize.w + '×' + state.currentSize.h;
+  } else {
+    $('cropRatio').textContent = t('cropFree');
+  }
+  cropDraw();
+};
+$('cropApply').onclick = ()=>{
+  const o = state.originalCanvas, r = cropUI.rect;
+  if(!o || !r) return;
+  const x = clamp(Math.round(r.x), 0, o.width - 10), y = clamp(Math.round(r.y), 0, o.height - 10);
+  const w = clamp(Math.round(r.w), 10, o.width - x), h = clamp(Math.round(r.h), 10, o.height - y);
+  const cropC = c => {
+    const n = document.createElement('canvas');
+    n.width = w; n.height = h;
+    n.getContext('2d', { willReadFrequently: true }).drawImage(c, x, y, w, h, 0, 0, w, h);
+    return n;
+  };
+  const sameSrc = state.sourceCanvas === o;
+  const newOrig = cropC(o);
+  const newSrc = sameSrc ? newOrig : cropC(state.sourceCanvas);
+  // keep the already-removed background: crop the cutout cache the same way
+  if(cutCache.ref === o && cutCache.cut){
+    cutCache = { ref: newOrig, cut: cropC(cutCache.cut), engine: cutCache.engine };
+  }
+  maskCache = { ref: null, mask: null };
+  maskPromise = null;
+  state.originalCanvas = newOrig;
+  state.sourceCanvas = newSrc;
+  state.retouchBase = null; state.retouchTarget = null; state.undoStack = [];
+  crop.cx = 0.5; crop.cy = 0.5; crop.zoom = 1;
+  closeCrop();
+  layoutAllCanvases();
+  drawAll();
+  toast(t('msgCropped'), 'success');
+};
+
+/* ============ RECENT buttons ============ */
+$('recSelBtn').onclick = ()=>{
+  recSel.on = !recSel.on;
+  if(!recSel.on) recSel.ids.clear();
+  drawRecent();
+};
+$('recAllBtn').onclick = ()=>{
+  if(recSel.ids.size === recentData.length) recSel.ids.clear();
+  else recentData.forEach(x => recSel.ids.add(x.id));
+  drawRecent();
+};
+$('recDelBtn').onclick = async ()=>{
+  if(!recSel.ids.size) return;
+  if(!confirm(t('clearRecentAsk') + ' (' + recSel.ids.size + ')')) return;
+  const ids = Array.from(recSel.ids);
+  try { await Recent.remove(ids); } catch(e){}
+  recSel.ids.clear(); recSel.on = false;
+  await renderRecent();
+};
+
+let resizeTimer;
+window.addEventListener('resize', ()=>{
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(()=>{
+    if(!state.sourceCanvas) return;
+    layoutAllCanvases();
+    drawAll();
+    if(cropVisible()){ cropLayout(); cropDraw(); }
+  }, 120);
+});
+
+if(window.matchMedia){
+  const mql = window.matchMedia('(prefers-color-scheme: light)');
+  if(mql.addEventListener){
+    mql.addEventListener('change', ()=>{
+      if((LS.get('pp_theme') || 'auto') === 'auto'){
+        applyTheme('auto');
+      }
+    });
+  }
+}
+
+/* ============ BATCH PERSISTENCE (customers survive a tab crash / reload) ============ */
+const BATCH_KEY = 'pp_batch_v1';
+let batchReady = false, persistTimer = null;
+function persistBatch(){
+  if(!batchReady) return;
+  try {
+    if(!state.customers.length){ window.localStorage.removeItem(BATCH_KEY); return; }
+    const list = state.customers.map(c => ({
+      id: c.id, name: c.name || '', copies: c.copies, w: c.w, h: c.h,
+      photo: c.photo.toDataURL('image/jpeg', 0.97), thumb: c.thumb
+    }));
+    window.localStorage.setItem(BATCH_KEY, JSON.stringify({ seq: custSeq, list }));
+  } catch(e){}
+}
+function persistSoon(){
+  clearTimeout(persistTimer);
+  persistTimer = setTimeout(persistBatch, 500);
+}
+function restoreBatch(){
+  let raw = null;
+  try { raw = window.localStorage.getItem(BATCH_KEY); } catch(e){}
+  let o = null;
+  try { o = raw ? JSON.parse(raw) : null; } catch(e){}
+  if(!o || !o.list || !o.list.length){ batchReady = true; return; }
+  let pending = o.list.length;
+  const out = [];
+  const done = ()=>{
+    if(--pending > 0) return;
+    const list = out.filter(Boolean);
+    if(list.length && !state.customers.length){
+      state.customers = list;
+      custSeq = Math.max(custSeq, o.seq || 0, ...list.map(x => x.id));
+      updateBatchBar();
+    }
+    batchReady = true;
+  };
+  o.list.forEach((d, i)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img, 0, 0);
+      out[i] = { id: d.id, name: d.name, copies: d.copies, w: d.w, h: d.h, photo: c, thumb: d.thumb };
+      done();
+    };
+    img.onerror = ()=> done();
+    img.src = d.photo;
+  });
+}
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'hidden') persistBatch(); });
+window.addEventListener('pagehide', persistBatch);
+$('fileGallery').addEventListener('click', persistBatch);
+$('fileCamera').addEventListener('click', persistBatch);
+
+function init(){
+  const savedTheme = LS.get('pp_theme') || 'auto';
+  applyTheme(savedTheme);
+
+  state.autoEnhance = LS.get('pp_auto_enhance') !== '0';
+  { let be = LS.get('pp_bg_engine'); if(be === 'ai' || !be) be = 'best'; else if(be === 'basic') be = 'light'; state.bgEngine = be; }
+  $('autoEnhanceSwitch').classList.toggle('on', state.autoEnhance);
+  $('bgEngineSel').value = state.bgEngine;
+  $('defaultSizeSel').value = LS.get('pp_default_size') || 'passport';
+  $('defaultColorSel').value = LS.get('pp_default_color') || '#ffffff';
+  $('defaultSheetSel').value = LS.get('pp_default_sheet') || 'a4';
+  $('defaultCopiesSel').value = LS.get('pp_default_copies') || '6';
+  $('sheetSize').value = LS.get('pp_default_sheet') || 'a4';
+  $('posSel').value = LS.get('pp_position') || 'top';
+
+  LS.set('pp_recent', '[]');
+  buildPresets();
+  buildColorGrid();
+  applyLang();
+  renderRecent();
+  restoreBatch();
+
+  attachPointers(canvas1, ctx1, true);
+  attachPointers(canvas2, ctx2, false);
+  attachPointers(canvas3, ctx3, false);
+  attachPointers(canvas4, ctx4, false);
+
+  document.addEventListener('gesturestart', e=>e.preventDefault());
+
+  setTimeout(()=> warmEngine(), 1000);
+}
+
+init();
+})();
+</script>
+<script>
+if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
+  window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+}
+</script>
+</body>
+</html>
