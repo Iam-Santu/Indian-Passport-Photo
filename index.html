@@ -511,6 +511,13 @@ details.more[open]>summary{margin-bottom:12px}
 .sz-form .full{grid-column:1/-1}
 .sz-item{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:6px 0}
 .sz-item button{border:0;background:none;color:var(--danger);font-size:16px}
+.tool-row{grid-template-columns:repeat(3,1fr)}
+.fs-btn svg{width:18px;height:18px}.fs-btn .i-out{display:none}body.fs .fs-btn .i-in{display:none}body.fs .fs-btn .i-out{display:block}
+body.fs .header,body.fs .step-tip,body.fs .controls,body.fs .preset-chips,body.fs .footer{display:none!important}
+body.fs .canvas-stage,body.fs .preview-stage{padding:6px}
+.bgp-bar{height:14px}
+.bgp-bar div{background:repeating-linear-gradient(45deg,var(--success) 0 10px,#22c55e 10px 20px);background-size:28px 28px;animation:bgstripe .7s linear infinite;transition:width .3s linear}
+@keyframes bgstripe{to{background-position:28px 0}}
 </style>
 </head>
 <body>
@@ -530,7 +537,7 @@ details.more[open]>summary{margin-bottom:12px}
       <span class="ico">📷</span><span data-i18n="openCamera">Camera</span>
     </label>
   </div>
-  <div class="def-card" id="defCard"><div class="dh"><span data-i18n="yourSettings">Your settings</span><span data-i18n="change">Change ›</span></div><div class="def-grid" id="defGrid"></div></div>
+  <div class="def-card" id="defCard" style="display:none"><div class="dh"><span data-i18n="yourSettings">Your settings</span><span data-i18n="change">Change ›</span></div><div class="def-grid" id="defGrid"></div></div>
   <div class="batch-bar" id="batchBar" style="display:none">
     <button class="btn success" id="openBatchBtn"><span id="batchBarText">Sheet</span></button>
     <button class="btn small" id="clearBatchBtn" title="Clear">🗑️</button>
@@ -636,6 +643,14 @@ details.more[open]>summary{margin-bottom:12px}
         </div>
         <div class="color-grid" id="colorGrid"></div>
       </div>
+      <div class="control-block">
+        <div class="ctrl-label"><span>Fix leftover background</span><button class="retry-btn" id="fixUndo">↶ Undo</button></div>
+        <div class="tool-row" id="fixRow" style="grid-template-columns:1fr 1fr">
+          <button class="tool-chip" data-fix="erase">🧹<small>Erase BG</small></button>
+          <button class="tool-chip" data-fix="restore">🖌️<small>Restore</small></button>
+        </div>
+        <div class="slider-row"><label>Size</label><input type="range" id="fixSize" min="12" max="100" value="40"><div class="val" id="fixSizeVal">40</div></div>
+      </div>
     </div>
     <div class="footer">
       <button class="btn primary" id="next3"><span data-i18n="next">Next</span></button>
@@ -657,10 +672,9 @@ details.more[open]>summary{margin-bottom:12px}
           <button class="btn small" id="centerFaceBtn"><span class="ico">🎯</span> <span data-i18n="centerFace">Center</span></button>
         </div>
       </div>
-      <details class="control-block more"><summary data-i18n="moreTools">More tools</summary>
+      <details class="control-block more" open><summary data-i18n="moreTools">More tools</summary>
         <div class="ctrl-label"><span data-i18n="retouch">Retouch Brush</span><button class="retry-btn" id="undoBrushBtn" data-i18n="undo">↶ Undo</button></div>
         <div class="tool-row" id="toolRow">
-          <button class="tool-chip active" data-tool="none">✋<small data-i18n="toolMove">Move</small></button>
           <button class="tool-chip" data-tool="smooth">🧽<small data-i18n="toolClean">Clean</small></button>
           <button class="tool-chip" data-tool="light">☀️<small data-i18n="toolLight">Lighten</small></button>
           <button class="tool-chip" data-tool="dark">🌑<small data-i18n="toolDark">Darken</small></button>
@@ -899,7 +913,7 @@ const I18N = {
     msgResetDone:'Reset complete', msgSaved:'Saved!', msgError:'Error', msgAiLoading:'Downloading AI model (first time only)…',
     msgMaxFit:'Max fit reached', msgPhotoSaved:'Photo saved to Gallery',
     addCust:'Add another customer', custDefault:'Customer', openBatch:'Open sheet', photosWord:'photos', customersWord:'customers', pageWord:'Page', emptyBatch:'No customers yet', clearAsk:'Clear all customers?', msgModelDl:'Downloading HD model (first time only)',
-    select:'Select', selectAll:'All', done:'Done', deleteSel:'Delete', clearRecentAsk:'Delete selected photos?', retouch:'Retouch Brush', toolMove:'Move', toolClean:'Clean', toolLight:'Lighten', toolDark:'Darken', brushSize:'Size', brushStrength:'Strength', undo:'↶ Undo', cropFree:'Free', msgCropped:'Cropped', position:'Position', posTop:'Top', posTopLeft:'Top-left', posCenter:'Center'
+    select:'Select', selectAll:'All', done:'Done', deleteSel:'Delete', clearRecentAsk:'Delete selected photos?', retouch:'Retouch Brush', toolMove:'Move', toolClean:'Smooth', toolLight:'Brighten', toolDark:'Darken', brushSize:'Size', brushStrength:'Strength', undo:'↶ Undo', cropFree:'Free', msgCropped:'Cropped', position:'Position', posTop:'Top', posTopLeft:'Top-left', posCenter:'Center'
   },
   bn: {
     appName:'পাসপোর্ট ফটো', pickPhoto:'গ্যালারি', openCamera:'ক্যামেরা', next:'পরবর্তী',
@@ -962,7 +976,7 @@ const tArr = (k, i) => {
 };
 
 const BG_COLORS = [
-  '#ffffff', '#fef3c7', '#f5e6d3', '#bfdbfe', '#7dd3fc',
+  '#ffffff', '#017bd6', '#fef3c7', '#f5e6d3', '#bfdbfe', '#7dd3fc',
   '#2563eb', '#1e40af', '#e5e7eb', '#9ca3af', '#fecaca',
   '#dc2626', '#a7f3d0', '#10b981', '#fbcfe8'
 ];
@@ -1393,6 +1407,7 @@ function blobToCanvas(blob, w, h){
 }
 
 async function getCutout(canvas){
+  if(bgPre.p && bgPre.canvas === canvas && bgPre.active){ try { await bgPre.p; } catch(e){} }
   if(cutCache.ref === canvas && cutCache.cut && cutCache.engine === state.bgEngine) return cutCache.cut;
   // 1) HD model
   if(state.bgEngine !== 'light'){
@@ -1500,7 +1515,8 @@ function updateColorBadge(){
 function buildPresets(){
   const box = $('presetChips');
   box.innerHTML = '';
-  PRESETS.forEach(p=>{
+  const dflt = LS.get('pp_default_size') || 'passport';
+  [...PRESETS].sort((a,b)=>(b.id===dflt)-(a.id===dflt)).forEach(p=>{
     const c = document.createElement('div');
     c.className = 'chip' + (p.id === state.currentPreset ? ' active' : '');
     c.dataset.id = p.id;
@@ -1958,6 +1974,7 @@ function buildSource(img){
   const def = PRESETS.find(p=>p.id === defId) || PRESETS[0];
   state.currentPreset = def.id;
   state.currentSize = { w:def.w, h:def.h };
+  buildPresets(); $('presetChips').scrollLeft = 0;
   document.querySelectorAll('.chip').forEach(c=>{
     c.classList.toggle('active', c.dataset.id === def.id);
   });
@@ -1968,7 +1985,7 @@ function buildSource(img){
   }
   showScreen('wizard');
   enterEditor();
-  warmEngine();
+  warmEngine(); startPre();
   requestAnimationFrame(()=>{
     requestAnimationFrame(()=>{
       layoutAllCanvases();
@@ -1980,7 +1997,7 @@ function buildSource(img){
 }
 
 function showStepUI(step){
-  closeCrop();
+  closeCrop(); setFS(false);
   state.step = step;
   document.querySelectorAll('.screen').forEach(el=>{
     if(el.id && el.id.startsWith('step')) el.classList.remove('active');
@@ -2084,7 +2101,7 @@ const SHEETS = {
 function renderSheets(customers, sheetKey, posKey){
   const sh = SHEETS[sheetKey] || SHEETS['a4'];
   const sw = mmToPx(sh.wmm), shh = mmToPx(sh.hmm);
-  const gap = Math.round(2 / MM_PER_IN * DPI);
+  const gap = Math.round(4 / MM_PER_IN * DPI);
   const margin = Math.round(4 / MM_PER_IN * DPI);
   const availW = sw - 2*margin, availH = shh - 2*margin;
 
@@ -2118,10 +2135,17 @@ function renderSheets(customers, sheetKey, posKey){
     c.fillStyle = '#fff'; c.fillRect(0, 0, sw, shh);
     let y = (posKey === 'center') ? Math.round((shh - rowsH(pageRows)) / 2) : margin;
     let count = 0;
-    pageRows.forEach(r => {
-      let x = (posKey === 'topleft') ? margin : Math.round((sw - r.w) / 2);
-      r.items.forEach(it => {
+    const g2 = gap / 2;
+    const starts = pageRows.map(r => (posKey === 'topleft') ? margin : Math.round((sw - r.w) / 2));
+    const bx0 = Math.min(...starts) - g2, bx1 = Math.max(...pageRows.map((r, i) => starts[i] + r.w)) + g2;
+    pageRows.forEach((r, ri) => {
+      let x = starts[ri];
+      r.items.forEach((it, idx) => {
         c.drawImage(it.photo, x, y, it.w, it.h);
+        c.save(); c.setLineDash([8, 8]); c.strokeStyle = '#555'; c.lineWidth = 1.5; c.beginPath();
+        if(idx < r.items.length - 1){ c.moveTo(x + it.w + g2, y - g2); c.lineTo(x + it.w + g2, y + r.h + g2); }
+        if(idx === 0 && ri < pageRows.length - 1){ c.moveTo(bx0, y + r.h + g2); c.lineTo(bx1, y + r.h + g2); }
+        c.stroke(); c.restore();
         c.strokeStyle = '#000'; c.lineWidth = 1;
         c.strokeRect(x + 0.5, y + 0.5, it.w - 1, it.h - 1);
         x += it.w + gap; count++;
@@ -2389,7 +2413,7 @@ $('themeQuick').onclick = ()=> $('settingsModal').classList.add('show');
 
 $('rotateBtn').onclick = ()=>{
   if(!state.originalCanvas) return;
-  state.originalCanvas = rotateCanvas90(state.originalCanvas);
+  state.originalCanvas = rotateCanvas90(state.originalCanvas); startPre();
   state.sourceCanvas = state.originalCanvas;
   state.bgRemoved = false;
   state.activeColor = '';
@@ -2403,7 +2427,7 @@ $('rotateBtn').onclick = ()=>{
 };
 $('flipBtn').onclick = ()=>{
   if(!state.originalCanvas) return;
-  state.originalCanvas = flipCanvasH(state.originalCanvas);
+  state.originalCanvas = flipCanvasH(state.originalCanvas); startPre();
   state.sourceCanvas = state.originalCanvas;
   state.bgRemoved = false;
   state.activeColor = '';
@@ -2645,7 +2669,7 @@ function srcPoint(e){
 function dab(x, y, rad){
   const sc = state.sourceCanvas;
   const tool = state.brushTool;
-  const R = tool === 'smooth' ? clamp(Math.round(rad * 0.22), 2, 8) : 0;
+  const S = clamp(Math.round(rad * 0.1), 1, 4); const R = tool === 'smooth' ? 2 * S : 0;
   const x0 = Math.max(0, Math.floor(x - rad)), y0 = Math.max(0, Math.floor(y - rad));
   const x1 = Math.min(sc.width, Math.ceil(x + rad)), y1 = Math.min(sc.height, Math.ceil(y + rad));
   const w = x1 - x0, h = y1 - y0;
@@ -2668,24 +2692,21 @@ function dab(x, y, rad){
       const f = tt * tt * (3 - 2 * tt);
       const i = (py * w + px) * 4;
       if(tool === 'smooth'){
-        // spot clean: median of 9 nearby points removes spots/marks but keeps edges sharp (no blur)
-        const k = Math.min(1, f * str * 1.6);
-        for(let c = 0; c < 3; c++){
-          let n = 0;
-          for(let oy = 0; oy < 3; oy++) for(let ox = 0; ox < 3; ox++){
-            const sx = clamp(x0 + px + offs[ox] - px0, 0, pw - 1), sy = clamp(y0 + py + offs[oy] - py0, 0, ph - 1);
-            const v = big[(sy * pw + sx) * 4 + c];
-            let j = n++; while(j > 0 && buf[j-1] > v){ buf[j] = buf[j-1]; j--; } buf[j] = v;
-          }
-          d[i + c] += (buf[4] - d[i + c]) * k;
+        const cx0 = x0 + px - px0, cy0 = y0 + py - py0, r0 = big[(cy0*pw+cx0)*4], g0 = big[(cy0*pw+cx0)*4+1], b0 = big[(cy0*pw+cx0)*4+2];
+        let sr = 0, sg = 0, sb = 0, wsum = 0;
+        for(let oy = -2; oy <= 2; oy++) for(let ox = -2; ox <= 2; ox++){
+          const sx = clamp(cx0 + ox*S, 0, pw-1), sy = clamp(cy0 + oy*S, 0, ph-1), j = (sy*pw+sx)*4;
+          const dr = big[j]-r0, dg = big[j+1]-g0, db = big[j+2]-b0;
+          const wt = Math.exp(-(dr*dr+dg*dg+db*db)/1800) * Math.exp(-(ox*ox+oy*oy)/6);
+          sr += big[j]*wt; sg += big[j+1]*wt; sb += big[j+2]*wt; wsum += wt;
         }
+        const k = Math.min(1, f * str * 1.4);
+        d[i] += (sr/wsum - d[i]) * k; d[i+1] += (sg/wsum - d[i+1]) * k; d[i+2] += (sb/wsum - d[i+2]) * k;
       } else if(tool === 'light'){
-        const k = f * str * 0.12;
-        d[i]   += (255 - d[i])   * k;
-        d[i+1] += (255 - d[i+1]) * k;
-        d[i+2] += (255 - d[i+2]) * k;
+        const k = f * str * 0.02;
+        d[i] *= (1 + k); d[i+1] *= (1 + k); d[i+2] *= (1 + k);
       } else if(tool === 'dark'){
-        const k = f * str * 0.12;
+        const k = f * str * 0.02;
         d[i] *= (1 - k); d[i+1] *= (1 - k); d[i+2] *= (1 - k);
       }
     }
@@ -2765,8 +2786,8 @@ canvas4.addEventListener('pointercancel', endStroke);
 
 document.querySelectorAll('#toolRow .tool-chip').forEach(b=>{
   b.onclick = ()=>{
-    state.brushTool = b.dataset.tool;
-    document.querySelectorAll('#toolRow .tool-chip').forEach(x => x.classList.toggle('active', x === b));
+    state.brushTool = (state.brushTool === b.dataset.tool) ? 'none' : b.dataset.tool;
+    document.querySelectorAll('#toolRow .tool-chip').forEach(x => x.classList.toggle('active', x.dataset.tool === state.brushTool));
     canvas4.style.cursor = state.brushTool === 'none' ? '' : 'crosshair';
     brush.pos = null;
     drawAll();
@@ -3058,12 +3079,13 @@ const AI_KEY = ()=> 'pp_ai_ok_' + (state.bgEngine === 'fast' ? 'q' : 'f');
 function updateTip(){
   const tip = $('stepTip'); if(!tip) return;
   tip.textContent = tArr('stepTips', state.step - 1);
-  $('fpBtn').style.display = (state.step >= 1 && state.step <= 4) ? '' : 'none';
+  $('fpBtn').style.display = 'none';
 }
 const bgProg = {
   tm: null, phase: 'init', t0: 0, dl: {}, sawDl: false, pct: 0,
+  preReset(){ this.phase = 'init'; this.t0 = Date.now(); this.dl = {}; this.sawDl = false; this.pct = 0; this.pre = true; },
   start(){
-    clearInterval(this.tm); this.phase = 'init'; this.t0 = Date.now(); this.dl = {}; this.sawDl = false; this.pct = 0;
+    clearInterval(this.tm); if(bgPre.active && this.pre){} else { this.pre = false; this.phase = 'init'; this.t0 = Date.now(); this.dl = {}; this.sawDl = false; this.pct = 0; }
     $('bgProg').style.display = 'block'; this.tick(); this.tm = setInterval(()=> this.tick(), 150);
   },
   onProgress(key, cur, total){
@@ -3080,7 +3102,7 @@ const bgProg = {
       p = tt ? 50 * (c / tt) : 0;
     } else if(this.phase === 'comp') p = (this.sawDl ? 50 : 0) + (92 - (this.sawDl ? 50 : 0)) * creep;
     else p = Math.min(8, creep * 20);
-    this.pct = Math.max(this.pct, p);
+    this.pct = Math.max(this.pct, p); this.pct = Math.min(96, this.pct + 0.12 + (96 - this.pct) * 0.006);
     const r = Math.min(100, Math.round(this.pct));
     $('bgpFill').style.width = r + '%';
     $('bgpPct').textContent = r + '% ' + t('progDone') + ' · ' + (100 - r) + '% ' + t('progLeft');
@@ -3188,6 +3210,102 @@ function openFPRefresh(){
   const out = renderPhoto(); $('fpImg').src = out.toDataURL('image/jpeg', 0.95); runChecks(out);
 }
 $('fpBtn').onclick = openFP;
+
+/* ---- background pre-removal: starts silently right after upload ---- */
+const bgPre = { p: null, canvas: null, tm: 0, active: false };
+function startPre(){
+  clearTimeout(bgPre.tm);
+  bgPre.tm = setTimeout(async ()=>{
+    const canvas = state.originalCanvas;
+    if(!canvas || state.bgEngine === 'light' || state.bgRemoved || bgPre.active) return;
+    if(cutCache.ref === canvas && cutCache.cut) return;
+    const fn = await loadImgly();
+    if(!fn || state.originalCanvas !== canvas) return;
+    const eng = state.bgEngine;
+    bgPre.canvas = canvas; bgPre.active = true; bgProg.preReset();
+    bgPre.p = (async ()=>{ try {
+      const sc = Math.min(1, 1024 / Math.max(canvas.width, canvas.height));
+      let src = canvas;
+      if(sc < 1){ src = document.createElement('canvas'); src.width = Math.round(canvas.width*sc); src.height = Math.round(canvas.height*sc); src.getContext('2d').drawImage(canvas, 0, 0, src.width, src.height); }
+      const blob = await new Promise(r => src.toBlob(r, 'image/png'));
+      const out = await fn(blob, { model: eng === 'fast' ? 'isnet_quint8' : 'isnet_fp16', output: { format: 'image/png', quality: 1 }, progress: (k, a, b)=> bgProg.onProgress(k, a, b) });
+      LS.set('pp_ai_ok_' + (eng === 'fast' ? 'q' : 'f'), '1'); renderAiDl();
+      let cut = await blobToCanvas(out, canvas.width, canvas.height); cut = finishCutout(cut, canvas);
+      if(state.originalCanvas === canvas) cutCache = { ref: canvas, cut, engine: eng };
+      return cut;
+    } catch(e){ return null; } finally { bgPre.active = false; } })();
+  }, 700);
+}
+if(LS.get('pp_ai_ok_f') === '1' || LS.get('pp_ai_ok_q') === '1') setTimeout(()=>{ try{ loadImgly(); }catch(e){} }, 1500);
+
+/* ---- fullscreen toggle on every step ---- */
+function setFS(on){
+  document.body.classList.toggle('fs', !!on);
+  try {
+    if(on && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
+    else if(!on && document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+  } catch(e){}
+  setTimeout(()=>{ try{ layoutAllCanvases(); drawAll(); }catch(e){} }, 80);
+}
+document.addEventListener('fullscreenchange', ()=>{ if(!document.fullscreenElement && document.body.classList.contains('fs')) setFS(false); });
+(function(){
+  const svg = (c, d) => '<svg class="' + c + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>';
+  const HTML = svg('i-in', 'M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3') + svg('i-out', 'M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3');
+  ['stage1', 'stage2', 'stage3', 'stage4'].map($).concat([document.querySelector('.preview-stage')]).forEach(st => {
+    if(!st) return;
+    let tl = st.querySelector('.stage-tools');
+    if(!tl){ tl = document.createElement('div'); tl.className = 'stage-tools'; st.appendChild(tl); }
+    const b = document.createElement('button'); b.className = 'tool-btn fs-btn'; b.title = 'Fullscreen'; b.innerHTML = HTML;
+    b.onclick = ()=> setFS(!document.body.classList.contains('fs'));
+    tl.appendChild(b);
+  });
+})();
+
+/* ---- fix leftover background (erase / restore on the cut-out) ---- */
+const fix = { tool: 'none', size: 40, down: false, pid: null, undo: [], raf: 0, last: null };
+document.querySelectorAll('#fixRow .tool-chip').forEach(b => b.onclick = ()=>{
+  if(!state.bgRemoved || !cutCache.cut){ toast('Pehle colour chuno (background hatega)', 'error'); return; }
+  fix.tool = (fix.tool === b.dataset.fix) ? 'none' : b.dataset.fix;
+  document.querySelectorAll('#fixRow .tool-chip').forEach(x => x.classList.toggle('active', x.dataset.fix === fix.tool));
+});
+$('fixSize').oninput = e => { fix.size = +e.target.value; $('fixSizeVal').textContent = fix.size; };
+$('fixUndo').onclick = ()=>{
+  const u = fix.undo.pop(); if(!u || !cutCache.cut) return;
+  const c = cutCache.cut.getContext('2d'); c.clearRect(0, 0, u.width, u.height); c.drawImage(u, 0, 0);
+  state.sourceCanvas = compositeCut(cutCache.cut, state.activeColor || '#ffffff'); drawAll();
+};
+function fixDab(x, y, rad){
+  const cut = cutCache.cut, c = cut.getContext('2d');
+  const sz = Math.ceil(rad * 2), t2 = document.createElement('canvas'); t2.width = t2.height = sz;
+  const tc = t2.getContext('2d'), g = tc.createRadialGradient(sz/2, sz/2, rad*0.55, sz/2, sz/2, rad);
+  g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  if(fix.tool === 'erase'){
+    c.save(); c.globalCompositeOperation = 'destination-out'; c.translate(x - sz/2, y - sz/2); c.fillStyle = g; c.fillRect(0, 0, sz, sz); c.restore();
+  } else {
+    tc.drawImage(state.originalCanvas, x - sz/2, y - sz/2, sz, sz, 0, 0, sz, sz);
+    tc.globalCompositeOperation = 'destination-in'; tc.fillStyle = g; tc.fillRect(0, 0, sz, sz);
+    c.drawImage(t2, x - sz/2, y - sz/2);
+  }
+}
+function fixMove(e){
+  const r = canvas3.getBoundingClientRect(), v = getView(canvas3);
+  const x = (e.clientX - r.left - canvas3.clientLeft - v.x) / v.scale, y = (e.clientY - r.top - canvas3.clientTop - v.y) / v.scale;
+  const rad = Math.max(2, fix.size / 2 / v.scale), L = fix.last;
+  if(!L) fixDab(x, y, rad);
+  else { const d = Math.hypot(x - L.x, y - L.y), n = Math.max(1, Math.floor(d / Math.max(1, rad * 0.3))); for(let i = 1; i <= n; i++) fixDab(L.x + (x - L.x) * i / n, L.y + (y - L.y) * i / n, rad); }
+  fix.last = { x, y };
+  if(!fix.raf) fix.raf = requestAnimationFrame(()=>{ fix.raf = 0; state.sourceCanvas = compositeCut(cutCache.cut, state.activeColor || '#ffffff'); drawAll(); });
+}
+canvas3.addEventListener('pointerdown', e=>{
+  if(fix.tool === 'none' || !state.bgRemoved || !cutCache.cut || !state.originalCanvas) return;
+  e.preventDefault(); fix.undo.push(cloneCanvas(cutCache.cut)); if(fix.undo.length > 6) fix.undo.shift();
+  fix.down = true; fix.pid = e.pointerId; fix.last = null;
+  try { canvas3.setPointerCapture(e.pointerId); } catch(_){}
+  fixMove(e);
+});
+canvas3.addEventListener('pointermove', e=>{ if(fix.down && e.pointerId === fix.pid) fixMove(e); });
+['pointerup', 'pointercancel'].forEach(n => canvas3.addEventListener(n, e=>{ if(e.pointerId === fix.pid) fix.down = false; }));
+
 $('fpBack').onclick = ()=> closeFP();
 $('fpEdit').onclick = ()=> closeFP();
 $('fpNext').onclick = ()=> closeFP(st => { const b = $('next' + st); if(b) b.click(); });
