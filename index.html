@@ -1414,10 +1414,7 @@ async function getCutout(canvas){
     const fn = await loadImgly();
     if(fn){
       try {
-        const sc = Math.min(1, 1024 / Math.max(canvas.width, canvas.height));
-        let src = canvas;
-        if(sc < 1){ src = document.createElement('canvas'); src.width = Math.round(canvas.width * sc); src.height = Math.round(canvas.height * sc); src.getContext('2d').drawImage(canvas, 0, 0, src.width, src.height); }
-        const blob = await new Promise(r => src.toBlob(r, 'image/png'));
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
         const out = await fn(blob, {
           model: state.bgEngine === 'fast' ? 'isnet_quint8' : 'isnet_fp16',
           output: { format: 'image/png', quality: 1 },

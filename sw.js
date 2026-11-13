@@ -1,7 +1,7 @@
 /* Passport Photo Studio - service worker
    App files: serve from cache instantly, refresh in background.
    AI model / CDN files: cache on first use so background removal works offline. */
-const SHELL_CACHE = 'pp-shell-v5';
+const SHELL_CACHE = 'pp-shell-v6';
 const CDN_CACHE = 'pp-cdn-v1';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 const CDN_HOSTS = ['cdn.jsdelivr.net', 'staticimgly.com'];
