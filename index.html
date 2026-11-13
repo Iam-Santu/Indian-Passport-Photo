@@ -1985,7 +1985,7 @@ function buildSource(img){
   }
   showScreen('wizard');
   enterEditor();
-  warmEngine(); startPre();
+  warmEngine();
   requestAnimationFrame(()=>{
     requestAnimationFrame(()=>{
       layoutAllCanvases();
@@ -2014,7 +2014,7 @@ function showStepUI(step){
       if(cv) layoutOneCanvas(cv);
       if(cv) drawCanvas(cv, ctx, step === 1);
       if(step === 5){ renderCustomers(); generatePreview(); }
-      if(step === 2) updateRemoveUI();
+      if(step === 2){ updateRemoveUI(); startPre(); }
       if(step === 3) updateColorBadge();
     });
   });
@@ -2413,7 +2413,7 @@ $('themeQuick').onclick = ()=> $('settingsModal').classList.add('show');
 
 $('rotateBtn').onclick = ()=>{
   if(!state.originalCanvas) return;
-  state.originalCanvas = rotateCanvas90(state.originalCanvas); startPre();
+  state.originalCanvas = rotateCanvas90(state.originalCanvas);
   state.sourceCanvas = state.originalCanvas;
   state.bgRemoved = false;
   state.activeColor = '';
@@ -2427,7 +2427,7 @@ $('rotateBtn').onclick = ()=>{
 };
 $('flipBtn').onclick = ()=>{
   if(!state.originalCanvas) return;
-  state.originalCanvas = flipCanvasH(state.originalCanvas); startPre();
+  state.originalCanvas = flipCanvasH(state.originalCanvas);
   state.sourceCanvas = state.originalCanvas;
   state.bgRemoved = false;
   state.activeColor = '';
